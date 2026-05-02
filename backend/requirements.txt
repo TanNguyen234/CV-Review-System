@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+langgraph
+langchain
+langchain-google-genai
+tavily-python
+pymupdf4llm
+weasyprint
+pydantic
+python-dotenv
+langchain-huggingface
+huggingface-hub
