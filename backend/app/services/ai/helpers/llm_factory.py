@@ -1,87 +1,178 @@
-import os
+"""
+LLM Factory — Creates and manages LLM instances.
+Supports Gemini and HuggingFace with structured output fallback.
+"""
+
+import copy
+import time
+from typing import Type, TypeVar
+
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_huggingface import HuggingFaceEndpoint, ChatHuggingFace
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.messages import SystemMessage
-import copy
+from pydantic import BaseModel
 
-def invoke_structured(llm, pydantic_class, messages):
+from app.core.config import settings
+from app.core.logging_config import pipeline_logger
+
+T = TypeVar("T", bound=BaseModel)
+
+
+class LLMTransientError(Exception):
+    """Transient error that should trigger a retry (timeout, rate limit, 503)."""
+    pass
+
+
+class LLMPermanentError(Exception):
+    """Permanent error that should NOT be retried (bad key, invalid request)."""
+    pass
+
+
+def _classify_and_raise(error: Exception, node_name: str = "unknown") -> None:
+    """
+    Classify an exception as transient or permanent and raise the appropriate type.
+    """
+    error_str = str(error).lower()
+    transient_indicators = [
+        "timeout", "rate limit", "429", "503", "504",
+        "service unavailable", "resource exhausted",
+        "overloaded", "too many requests", "deadline exceeded",
+        "connection", "temporary", "retry",
+    ]
+
+    is_transient = any(indicator in error_str for indicator in transient_indicators)
+
+    pipeline_logger.node_error(
+        node_name,
+        str(error),
+        retryable=is_transient,
+    )
+
+    if is_transient:
+        raise LLMTransientError(f"Transient LLM error: {error}") from error
+    else:
+        raise LLMPermanentError(f"Permanent LLM error: {error}") from error
+
+
+def invoke_structured(
+    llm,
+    pydantic_class: Type[T],
+    messages: list,
+    node_name: str = "unknown",
+) -> T:
     """
     Safely invokes an LLM to return a Pydantic object.
     Falls back to JsonOutputParser if the model lacks native tool calling.
+    Classifies errors for retry policy compatibility.
     """
     is_hf = "ChatHuggingFace" in str(type(llm))
-    
-    if is_hf:
-        parser = JsonOutputParser(pydantic_object=pydantic_class)
-        format_instructions = parser.get_format_instructions()
-        
-        new_messages = copy.deepcopy(messages)
-        for msg in new_messages:
-            if isinstance(msg, SystemMessage):
-                msg.content += f"\n\nCRITICAL: You MUST output ONLY valid JSON. {format_instructions}"
-                break
-        else:
-            new_messages.insert(0, SystemMessage(content=f"CRITICAL: You MUST output ONLY valid JSON. {format_instructions}"))
-            
-        result_msg = llm.invoke(new_messages)
-        result_dict = parser.invoke(result_msg)
-        return pydantic_class(**result_dict)
-    else:
-        structured_llm = llm.with_structured_output(pydantic_class)
-        return structured_llm.invoke(messages)
+    start = time.time()
 
-def get_llm(temperature: float = 0.2):
+    try:
+        if is_hf:
+            parser = JsonOutputParser(pydantic_object=pydantic_class)
+            format_instructions = parser.get_format_instructions()
+
+            new_messages = copy.deepcopy(messages)
+            for msg in new_messages:
+                if isinstance(msg, SystemMessage):
+                    msg.content += (
+                        f"\n\nCRITICAL: You MUST output ONLY valid JSON. "
+                        f"{format_instructions}"
+                    )
+                    break
+            else:
+                new_messages.insert(
+                    0,
+                    SystemMessage(
+                        content=f"CRITICAL: You MUST output ONLY valid JSON. "
+                        f"{format_instructions}"
+                    ),
+                )
+
+            result_msg = llm.invoke(new_messages)
+            result_dict = parser.invoke(result_msg)
+            result = pydantic_class(**result_dict)
+        else:
+            structured_llm = llm.with_structured_output(pydantic_class)
+            result = structured_llm.invoke(messages)
+
+        duration_ms = (time.time() - start) * 1000
+        pipeline_logger.node_complete(
+            node_name,
+            duration_ms=duration_ms,
+        )
+        return result
+
+    except (LLMTransientError, LLMPermanentError):
+        raise  # Already classified, re-raise as-is
+    except Exception as e:
+        _classify_and_raise(e, node_name)
+
+
+def get_llm(temperature: float | None = None):
     """
     Factory function to create an LLM instance.
     Prioritizes Qwen if USE_QWEN=true, else uses Gemini.
     """
-    use_qwen = os.getenv("USE_QWEN", "false").lower() == "true"
-    
-    if use_qwen:
-        token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN")
-        if not token:
-            raise ValueError("HuggingFace token not found. Please set HF_TOKEN in .env")
-        
-        # Using Qwen2.5 as it's the current standard
-        model_id = os.getenv("HF_MODEL", "Qwen/Qwen2.5-7B-Instruct")
-        
+    temp = temperature if temperature is not None else settings.llm_temperature
+
+    if settings.use_qwen:
+        if not settings.hf_token:
+            raise LLMPermanentError(
+                "HuggingFace token not found. Please set HF_TOKEN in .env"
+            )
+
         llm = HuggingFaceEndpoint(
-            repo_id=model_id,
-            huggingfacehub_api_token=token,
-            temperature=temperature,
+            repo_id=settings.hf_model,
+            huggingfacehub_api_token=settings.hf_token,
+            temperature=temp,
             max_new_tokens=1024,
-            timeout=300
+            timeout=300,
         )
         return ChatHuggingFace(llm=llm)
-    
-    # Gemini logic
-    api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API") or os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("Gemini API Key not found. Please check .env")
 
-    # Prioritize GEMINI_MODEL from .env as it seems to be the working one for the user
-    model_name = os.getenv("GEMINI_MODEL") or os.getenv("AI_MODEL_FLASH") or "gemini-1.5-flash-latest"
-        
+    # Gemini logic
+    api_key = settings.gemini_api_key
+    if not api_key:
+        raise LLMPermanentError(
+            "Gemini API Key not found. Please set GEMINI_API_KEY in .env"
+        )
+
+    model_name = settings.gemini_model or settings.ai_model_flash
+
+    pipeline_logger.llm_call(model=model_name, node="factory")
+
     return ChatGoogleGenerativeAI(
         model=model_name,
         google_api_key=api_key,
-        temperature=temperature
+        temperature=temp,
     )
 
-def get_pro_llm(temperature: float = 0.2):
+
+def get_pro_llm(temperature: float | None = None):
     """
-    Factory for Pro/Meta reasoning.
+    Factory for Pro/Meta reasoning — uses a more capable model.
     """
+    temp = temperature if temperature is not None else settings.llm_temperature
+
     # If using Qwen, we use the same endpoint
-    if os.getenv("USE_QWEN", "false").lower() == "true":
-        return get_llm(temperature=temperature)
-        
-    model_name = os.getenv("AI_MODEL_PRO") or os.getenv("GEMINI_MODEL") or "gemini-1.5-pro-latest"
-    api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API") or os.getenv("GEMINI_API_KEY")
-    
+    if settings.use_qwen:
+        return get_llm(temperature=temp)
+
+    model_name = settings.ai_model_pro or settings.gemini_model
+    api_key = settings.gemini_api_key
+
+    if not api_key:
+        raise LLMPermanentError(
+            "Gemini API Key not found. Please set GEMINI_API_KEY in .env"
+        )
+
+    pipeline_logger.llm_call(model=model_name, node="factory_pro")
+
     return ChatGoogleGenerativeAI(
         model=model_name,
         google_api_key=api_key,
-        temperature=temperature
+        temperature=temp,
     )

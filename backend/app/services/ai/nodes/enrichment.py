@@ -1,53 +1,115 @@
-import os
-from tavily import TavilyClient
+"""
+Enrichment Node — Web search for market context and industry standards.
+Uses Tavily API for lightweight RAG enrichment.
+"""
+
+import time
 from app.services.ai.state import AgentState
+from app.core.config import settings
+from app.core.logging_config import pipeline_logger
 
-def get_tavily_client():
-    api_key = os.getenv("TAVILY_API_KEY", os.getenv("TAVILY_API", ""))
-    return TavilyClient(api_key=api_key)
 
-def _build_query(sections: dict) -> str:
+def _build_query(sections: dict, level: str = "", industry: str = "") -> str:
+    """
+    Build a comprehensive search query from CV data.
+    Uses skills, objective, level, and industry for better results.
+    """
+    parts = []
+
+    # Add level and industry for targeted results
+    if level and level != "Unknown":
+        parts.append(f"{level} level")
+    if industry:
+        parts.append(f"{industry} industry")
+
     # Try to find skills section
     skills = sections.get("SKILLS", sections.get("AREAS OF EXPERTISE", ""))
-    target_role = "IT Professional" # Default fallback
-    
+    if skills:
+        # Take key skills, not the full text
+        skill_lines = [
+            line.strip()
+            for line in skills.split("\n")
+            if line.strip() and len(line.strip()) > 2
+        ]
+        parts.append(" ".join(skill_lines[:5]))
+
     # Try to extract role from objective/summary if available
     objective = sections.get("OBJECTIVE", sections.get("SUMMARY", ""))
     if objective:
-        target_role = objective[:50] # Take first 50 chars as a hint
-    
-    # Take first 100 characters of skills to keep query short
-    skill_text = skills[:100] if skills else ""
-    parts = [target_role, skill_text, "industry standards and expectations"]
-    return " ".join([part for part in parts if part]).strip()
+        parts.append(objective[:100])
+
+    parts.append("hiring standards required skills salary expectations 2025 2026")
+
+    query = " ".join([part for part in parts if part]).strip()
+    # Limit query length for API
+    return query[:300] if query else ""
+
 
 def enrichment_node(state: AgentState) -> dict:
-    errors = state.get("errors", [])
-    api_key = os.getenv("TAVILY_API_KEY", os.getenv("TAVILY_API", ""))
+    """
+    Enriches the pipeline state with market context from web search.
+    Results are fed into Phase 3 evaluator for technology relevance assessment.
+    """
+    start = time.time()
+    pipeline_logger.node_start("enrichment")
 
+    api_key = settings.tavily_api_key
     if not api_key:
-        errors.append("TAVILY_API_KEY not set")
-        return {"errors": errors}
+        pipeline_logger.node_error(
+            "enrichment", "TAVILY_API_KEY not set", retryable=False
+        )
+        return {
+            "text_insights": {},
+            "processing_metadata": {"enrichment_skipped": True},
+            "errors": ["TAVILY_API_KEY not set — enrichment skipped"],
+        }
 
     sections = state.get("sections", {})
-    query = _build_query(sections)
+    level = state.get("candidate_level", "")
+    industry = state.get("industry", "")
+
+    query = _build_query(sections, level, industry)
     if not query:
-        return {"errors": errors}
+        return {
+            "text_insights": {},
+            "processing_metadata": {"enrichment_skipped": True},
+            "errors": [],
+        }
 
     try:
-        client = get_tavily_client()
-        results = client.search(query, max_results=3)
-        
-        text_insights = state.get("text_insights", {})
-        if text_insights is None:
-            text_insights = {}
-            
-        text_insights["rag_context"] = results
-        
+        from tavily import TavilyClient
+
+        client = TavilyClient(api_key=api_key)
+        results = client.search(query, max_results=5)
+
+        duration_ms = (time.time() - start) * 1000
+        pipeline_logger.node_complete(
+            "enrichment",
+            duration_ms=duration_ms,
+        )
+
         return {
-            "text_insights": text_insights,
-            "errors": errors
+            "text_insights": {"rag_context": results},
+            "processing_metadata": {
+                "enrichment_duration_ms": round(duration_ms, 2),
+                "enrichment_query": query[:100],
+                "enrichment_results_count": len(
+                    results.get("results", [])
+                ),
+            },
+            "errors": [],
         }
+
     except Exception as exc:
-        errors.append(f"rag_enricher error: {exc}")
-        return {"errors": errors}
+        duration_ms = (time.time() - start) * 1000
+        pipeline_logger.node_error(
+            "enrichment", str(exc), retryable=True
+        )
+        return {
+            "text_insights": {},
+            "processing_metadata": {
+                "enrichment_duration_ms": round(duration_ms, 2),
+                "enrichment_error": str(exc),
+            },
+            "errors": [f"Enrichment error (non-blocking): {exc}"],
+        }

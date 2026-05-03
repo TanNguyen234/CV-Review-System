@@ -1,52 +1,104 @@
-import os
-from pydantic import BaseModel, Field
-from langchain_core.messages import SystemMessage, HumanMessage
-from app.services.ai.state import AgentState
-from app.services.ai.helpers.llm_factory import get_llm, invoke_structured
-
-PROFILER_PROMPT = """
-You are an expert tech recruiter. Your job is to analyze the candidate's CV text and determine their seniority level.
-Categorize them as exactly one of: "Intern", "Fresher", "Junior", "Mid-level", or "Senior".
-
-Then, provide a short dynamic scoring rubric (2-3 sentences) that evaluators should follow for this specific level.
-For example, if Intern/Fresher, explicitly state: "Candidate is entry-level. Lack of professional experience is expected and should NOT be penalized with a 0 score. Weight personal/academic projects and potential heavily."
-If Senior, explicitly state: "Candidate is experienced. Demand high impact, leadership, system design skills, and clear progression in their experience section."
+"""
+Profiler Node — Determines candidate level and generates dynamic evaluation rubrics.
 """
 
+import time
+from pydantic import BaseModel, Field
+from langchain_core.messages import SystemMessage, HumanMessage
+
+from app.services.ai.state import AgentState
+from app.services.ai.helpers.llm_factory import (
+    get_llm,
+    invoke_structured,
+    LLMTransientError,
+    LLMPermanentError,
+)
+from app.core.logging_config import pipeline_logger
+
+PROFILER_PROMPT = """
+Bạn là một chuyên gia tuyển dụng công nghệ cao cấp. Nhiệm vụ của bạn là phân tích văn bản CV của ứng viên và xác định cấp độ chuyên môn cũng như ngành nghề của họ.
+
+Xác định chính xác một trong các cấp độ: "Intern", "Fresher", "Junior", "Mid-level", hoặc "Senior".
+Xác định ngành nghề (ví dụ: IT, Marketing, Tài chính, v.v.).
+Trích xuất tên đầy đủ của ứng viên.
+
+Sau đó, cung cấp một tiêu chí chấm điểm động ngắn (2-3 câu) mà các đánh giá viên nên tuân theo cho cấp độ cụ thể này.
+Ví dụ: Nếu là Intern/Fresher, hãy nêu rõ: "Ứng viên là người mới bắt đầu. Việc thiếu kinh nghiệm chuyên môn là điều bình thường và KHÔNG nên bị trừ điểm nặng. Hãy tập trung đánh giá vào các dự án cá nhân/đồ án và tiềm năng phát triển."
+"""
+
+
 class ProfilerResult(BaseModel):
-    level: str = Field(description="The detected seniority level (Intern, Fresher, Junior, Mid-level, Senior).")
-    dynamic_rubric: str = Field(description="The specific scoring instructions for evaluators based on this level.")
+    name: str = Field(description="Tên đầy đủ của ứng viên")
+    level: str = Field(
+        description="Cấp độ chuyên môn (Intern, Fresher, Junior, Mid-level, Senior)"
+    )
+    industry: str = Field(
+        description="Ngành nghề của ứng viên (ví dụ: IT)"
+    )
+    dynamic_rubric: str = Field(
+        description="Hướng dẫn chấm điểm cụ thể dựa trên cấp độ này"
+    )
+
 
 def profiler_node(state: AgentState) -> dict:
     """
     Analyzes the CV to determine candidate level and dynamically adjust evaluation rubrics.
     """
-    errors = state.get("errors", [])
+    start = time.time()
+    pipeline_logger.node_start("profiler")
+
     cleaned_text = state.get("cleaned_text", "")
-    
+
     if not cleaned_text:
-        errors.append("Profiler: No cleaned text available.")
-        return {"candidate_level": "Unknown", "dynamic_rubric": "Use standard evaluation criteria.", "errors": errors}
-        
+        pipeline_logger.node_error("profiler", "No cleaned text available")
+        return {
+            "candidate_name": "N/A",
+            "candidate_level": "Unknown",
+            "industry": "N/A",
+            "dynamic_rubric": "Use standard evaluation criteria.",
+            "errors": ["Profiler: No cleaned text available."],
+        }
+
     try:
         llm = get_llm()
-        
+
         messages = [
             SystemMessage(content=PROFILER_PROMPT),
-            HumanMessage(content=f"Analyze this CV:\n{cleaned_text[:3000]}") # First 3000 chars is usually enough to gauge level
+            HumanMessage(
+                content=f"Analyze this CV:\n{cleaned_text[:3000]}"
+            ),
         ]
-        
-        result = invoke_structured(llm, ProfilerResult, messages)
-        
+
+        result = invoke_structured(
+            llm, ProfilerResult, messages, node_name="profiler"
+        )
+
+        duration_ms = (time.time() - start) * 1000
+        pipeline_logger.node_complete(
+            "profiler",
+            duration_ms=duration_ms,
+        )
+
         return {
+            "candidate_name": result.name,
             "candidate_level": result.level,
+            "industry": result.industry,
             "dynamic_rubric": result.dynamic_rubric,
-            "errors": errors
+            "processing_metadata": {
+                "profiler_duration_ms": round(duration_ms, 2)
+            },
+            "errors": [],
         }
-    except Exception as e:
-        errors.append(f"Profiler error: {str(e)}")
+
+    except LLMTransientError:
+        raise  # Let RetryPolicy handle
+
+    except (LLMPermanentError, Exception) as e:
+        pipeline_logger.node_error("profiler", str(e))
         return {
-            "candidate_level": "Unknown", 
-            "dynamic_rubric": "Use standard strict evaluation criteria.", 
-            "errors": errors
+            "candidate_name": "N/A",
+            "candidate_level": "Unknown",
+            "industry": "N/A",
+            "dynamic_rubric": "Use standard strict evaluation criteria.",
+            "errors": [f"Profiler error: {str(e)}"],
         }
