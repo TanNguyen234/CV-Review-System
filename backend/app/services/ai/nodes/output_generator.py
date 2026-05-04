@@ -111,6 +111,7 @@ def generate_html(state: AgentState) -> str:
 
     final_score = meta.get("final_score", 0)
     summary = meta.get("summary", "")
+    detailed_analysis = meta.get("detailed_analysis", "")
     meta_confidence = meta.get("confidence", 3)
 
     # Phase scores
@@ -139,7 +140,7 @@ def generate_html(state: AgentState) -> str:
             "technical_proof": "Minh chứng kỹ thuật",
             "projects": "Dự án triển khai",
             "leadership": "Khả năng lãnh đạo",
-            "international": "Kinh nghiệm quốc tế",
+            "languages": "Khả năng Ngoại ngữ",
             "awards": "Giải thưởng & Thành tích",
         }
 
@@ -237,6 +238,13 @@ def generate_html(state: AgentState) -> str:
             <strong>Điều Chỉnh Điểm:</strong>
             <ul>{adj_items}</ul>
         </div>
+        """
+
+    detailed_analysis_html = ""
+    if detailed_analysis:
+        detailed_analysis_html = f"""
+        <h2>Đánh Giá Toàn Diện</h2>
+        <div style="background: #fff; border: 1px solid var(--border); padding: 30px; border-radius: 4px; margin-bottom: 40px; font-size: 15px; line-height: 1.8; color: #334155; white-space: pre-wrap;">{detailed_analysis}</div>
         """
 
     html = f"""
@@ -367,8 +375,9 @@ def generate_html(state: AgentState) -> str:
 
             {validation_html}
             {adjustments_html}
+            {detailed_analysis_html}
 
-            <h2>Phân Tích Chi Tiết</h2>
+            <h2>Phân Tích Từng Phần</h2>
 
             <div class="phase-card">
                 <div class="phase-header">
@@ -386,7 +395,7 @@ def generate_html(state: AgentState) -> str:
                     <span class="phase-title">GIAI ĐOẠN 3: Đánh giá chuyên môn kỹ thuật</span>
                     <div class="phase-score">
                         {_confidence_badge(p3.get('confidence', 3))}
-                        <span style="color:{_score_color(p3.get('score', 0), 30)}">{p3.get('score', 0)} / 30</span>
+                        <span style="color:{_score_color(p3.get('score', 0), 40)}">{p3.get('score', 0)} / 40</span>
                     </div>
                 </div>
                 {render_details(p3.get('details', {}))}
@@ -394,10 +403,10 @@ def generate_html(state: AgentState) -> str:
 
             <div class="phase-card">
                 <div class="phase-header">
-                    <span class="phase-title">GIAI ĐOẠN 4: Các yếu tố bổ sung chiến lược</span>
+                    <span class="phase-title">GIAI ĐOẠN 4: Yếu tố bổ sung (Điểm thưởng)</span>
                     <div class="phase-score">
                         {_confidence_badge(p4.get('confidence', 3))}
-                        <span style="color:{_score_color(p4.get('score', 0), 10)}">{p4.get('score', 0)} / 10</span>
+                        <span style="color:{_score_color(p4.get('score', 0), 10)}">+{p4.get('score', 0)} Điểm</span>
                     </div>
                 </div>
                 {render_details(p4.get('details', {}))}

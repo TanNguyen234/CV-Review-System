@@ -22,8 +22,10 @@ Xác định chính xác một trong các cấp độ: "Intern", "Fresher", "Jun
 Xác định ngành nghề (ví dụ: IT, Marketing, Tài chính, v.v.).
 Trích xuất tên đầy đủ của ứng viên.
 
-Sau đó, cung cấp một tiêu chí chấm điểm động ngắn (2-3 câu) mà các đánh giá viên nên tuân theo cho cấp độ cụ thể này.
-Ví dụ: Nếu là Intern/Fresher, hãy nêu rõ: "Ứng viên là người mới bắt đầu. Việc thiếu kinh nghiệm chuyên môn là điều bình thường và KHÔNG nên bị trừ điểm nặng. Hãy tập trung đánh giá vào các dự án cá nhân/đồ án và tiềm năng phát triển."
+Sau đó, cung cấp một tiêu chí chấm điểm động ngắn (3-4 câu) mà các đánh giá viên nên tuân theo cho cấp độ cụ thể này.
+YÊU CẦU QUAN TRỌNG KHI TẠO TIÊU CHÍ (dynamic_rubric):
+- Nếu là "Intern" hoặc "Fresher": Hãy nêu rõ "Ứng viên là người mới bắt đầu. Việc thiếu kinh nghiệm chuyên môn là điều bình thường. Hãy tập trung đánh giá vào các dự án cá nhân/đồ án và tiềm năng phát triển."
+- Nếu là "Junior", "Mid-level", "Senior": Hãy nêu rõ "BẮT BUỘC ứng viên phải có kinh nghiệm làm việc thực tế. Đây là ĐIỂM CỨNG trong phần chuyên môn. Nếu chỉ có dự án cá nhân mà không có kinh nghiệm đi làm thật, phải trừ điểm nặng phần Kinh nghiệm."
 """
 
 

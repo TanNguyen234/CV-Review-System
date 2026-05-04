@@ -46,7 +46,8 @@ class MetaEvaluationResult(BaseModel):
     industry_keywords: List[str] = Field(
         description="Các từ khóa ngành nên có"
     )
-    summary: str = Field(description="Tóm tắt tổng quan chuyên sâu")
+    summary: str = Field(description="Tóm tắt tổng quan ngắn gọn")
+    detailed_analysis: str = Field(description="Phân tích chuyên sâu cực kỳ chi tiết")
 
 
 def meta_evaluator_node(state: AgentState) -> dict:
@@ -127,6 +128,7 @@ def meta_evaluator_node(state: AgentState) -> dict:
                     "industry_standards": result.industry_standards,
                     "industry_keywords": result.industry_keywords,
                     "summary": result.summary,
+                    "detailed_analysis": result.detailed_analysis,
                 }
             },
             "processing_metadata": {
