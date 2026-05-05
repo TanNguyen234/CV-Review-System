@@ -30,3 +30,11 @@ weasyprint
 pytest
 pytest-cov
 pytest-asyncio
+
+# Database & Storage
+motor>=3.3.0
+cloudinary>=1.36.0
+
+# Frontend & Streaming
+jinja2>=3.1.2
+sse-starlette>=1.8.0

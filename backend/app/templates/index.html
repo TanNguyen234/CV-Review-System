@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI CV Evaluation System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <main class="container">
+        <header>
+            <h1>AI CV Evaluator <span class="badge">Pro</span></h1>
+            <p>Upload your CV to get a deep, multi-agent AI analysis.</p>
+        </header>
+
+        <div class="glass-panel" id="upload-panel">
+            <form id="evaluation-form">
+                <div class="form-group">
+                    <label for="cv-file">Upload CV (PDF) <span class="required">*</span></label>
+                    <div class="file-drop-area">
+                        <span class="file-msg">Choose a PDF file or drag it here</span>
+                        <input class="file-input" type="file" id="cv-file" name="cv_file" accept=".pdf" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="jd-text">Job Description (Optional)</label>
+                    <textarea id="jd-text" name="jd_text" placeholder="Paste the job description here to see how well your CV matches the role..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-primary" id="submit-btn">
+                    <span>Start AI Analysis</span>
+                    <div class="spinner hidden" id="submit-spinner"></div>
+                </button>
+            </form>
+            <div id="error-message" class="error-msg hidden"></div>
+        </div>
+
+        <div class="glass-panel hidden" id="status-panel">
+            <h2>AI Agents at Work</h2>
+            <div class="terminal">
+                <ul id="log-list">
+                    <li><span class="log-time">[System]</span> Initializing LangGraph multi-agent pipeline...</li>
+                </ul>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </div>
+
+        <div class="glass-panel hidden" id="result-panel">
+            <div class="result-header">
+                <h2>Analysis Complete</h2>
+                <button class="btn-secondary" id="download-pdf-btn">Download PDF Report</button>
+            </div>
+            <div id="report-content" class="report-container">
+                <!-- HTML Output goes here -->
+            </div>
+            <button class="btn-outline mt-4" id="restart-btn">Evaluate Another CV</button>
+        </div>
+    </main>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

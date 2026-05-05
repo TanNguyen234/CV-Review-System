@@ -49,6 +49,12 @@ class Settings(BaseSettings):
     )
     max_upload_size_mb: int = Field(default=10, description="Max PDF upload size in MB")
 
+    # --- Database & Storage ---
+    mongo_url: str = Field(default="", alias="MONGO_URL")
+    cloud_name: str = Field(default="", alias="CLOUD_NAME")
+    cloud_key: str = Field(default="", alias="CLOUD_KEY")
+    cloud_secret: str = Field(default="", alias="CLOUD_SECRET")
+
     # --- Pipeline Tuning ---
     llm_temperature: float = Field(default=0.2, ge=0.0, le=1.0)
     llm_max_retries: int = Field(default=3, ge=1, le=5)
