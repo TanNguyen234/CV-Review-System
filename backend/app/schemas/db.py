@@ -17,6 +17,8 @@ class CVRecord(BaseModel):
     status: str = "processing"  # processing, completed, failed, spam
     is_valid_cv: bool = True
     spam_reason: Optional[str] = None
+    jd_text: Optional[str] = None
+    report_html: Optional[str] = None
     final_score: Optional[float] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

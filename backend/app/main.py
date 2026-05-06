@@ -25,7 +25,7 @@ from app.api.v1.jobs import router as jobs_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    # db_manager.connect()
+    db_manager.connect()
     yield
     # Shutdown
     db_manager.disconnect()

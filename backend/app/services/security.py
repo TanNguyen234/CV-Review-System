@@ -16,7 +16,7 @@ async def check_rate_limit(ip_address: str, max_requests: int = 5) -> bool:
     Checks if the IP has exceeded the daily limit.
     Increments the counter if not.
     """
-    if not db_manager.db:
+    if db_manager.db is None:
         # DB not connected, maybe in testing
         return True
         

@@ -68,6 +68,22 @@ async def submit_job(
         try:
             is_cv, reason = await validate_cv_spam(file_path)
             if not is_cv:
+                # Store spam record in DB
+                try:
+                    from app.core.database import db_manager
+                    from app.schemas.db import CVRecord
+                    if db_manager.db is not None:
+                        spam_record = CVRecord(
+                            job_id=job_id,
+                            filename=cv_file.filename,
+                            status="spam",
+                            is_valid_cv=False,
+                            spam_reason=reason
+                        )
+                        await db_manager.db["cv_records"].insert_one(spam_record.model_dump())
+                except Exception as db_e:
+                    logger.error(f"Failed to store spam record: {db_e}")
+
                 if os.path.exists(file_path):
                     os.remove(file_path)
                 raise HTTPException(status_code=400, detail=f"File rejected: {reason}")
@@ -91,20 +107,21 @@ async def submit_job(
         except Exception as e:
             logger.error(f"Cloudinary upload failed: {e}")
             
-        # 6. Store in DB (Disabled for now due to connection hang)
-        # try:
-        #     from app.core.database import db_manager
-        #     from app.schemas.db import CVRecord
-        #     if db_manager.db is not None:
-        #         cv_record = CVRecord(
-        #             job_id=job_id,
-        #             filename=cv_file.filename,
-        #             cloudinary_url=cloudinary_url,
-        #             is_valid_cv=True
-        #         )
-        #         await db_manager.db["cv_records"].insert_one(cv_record.model_dump())
-        # except Exception as e:
-        #     logger.error(f"DB storage failed: {e}")
+        # 6. Store in DB
+        try:
+            from app.core.database import db_manager
+            from app.schemas.db import CVRecord
+            if db_manager.db is not None:
+                cv_record = CVRecord(
+                    job_id=job_id,
+                    filename=cv_file.filename,
+                    cloudinary_url=cloudinary_url,
+                    jd_text=jd_text,
+                    is_valid_cv=True
+                )
+                await db_manager.db["cv_records"].insert_one(cv_record.model_dump())
+        except Exception as e:
+            logger.error(f"DB storage failed: {e}")
 
 
             
@@ -173,25 +190,36 @@ async def stream_job(job_id: str):
                     
                     # If output generator is done, we have the final HTML
                     if node_name == "output_generator" and "report_html" in updates:
+                        # Extract final score if available
+                        final_score = updates.get("scores", {}).get("META", {}).get("final_score")
+                        
                         # We send a special completion event with the HTML
                         final_data = {
                             "report_html": updates["report_html"],
                             "scores": updates.get("scores", {})
                         }
+                        
+                        # Update DB with results
+                        from app.core.database import db_manager
+                        if db_manager.db is not None:
+                            await db_manager.db["cv_records"].update_one(
+                                {"job_id": job_id},
+                                {
+                                    "$set": {
+                                        "status": "completed", 
+                                        "report_html": updates["report_html"],
+                                        "final_score": final_score,
+                                        "updated_at": datetime.utcnow()
+                                    }
+                                }
+                            )
+                        
                         # SSE data must be text, so we JSON serialize
                         yield {"event": "complete", "data": json.dumps(final_data)}
             
             # Clean up temp file
             if os.path.exists(file_path):
                 os.remove(file_path)
-                
-            # Update DB status
-            from app.core.database import db_manager
-            if db_manager.db is not None:
-                await db_manager.db["cv_records"].update_one(
-                    {"job_id": job_id},
-                    {"$set": {"status": "completed", "updated_at": datetime.utcnow()}}
-                )
                 
         except Exception as e:
             logger.error(f"Error in stream: {e}")
