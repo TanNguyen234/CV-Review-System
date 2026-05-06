@@ -38,61 +38,91 @@ async def submit_job(
     """
     Step 1: Upload file, run anti-bot, validate spam, and return a job_id.
     """
-    client_ip = request.client.host
-    
-    # 1. Anti-bot Rate Limiter (5 per day)
-    await check_rate_limit(client_ip, max_requests=5)
-    
-    # 2. File Validation
-    if not cv_file.filename or not cv_file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
-    
-    # 3. Save Temp File
-    job_id = str(uuid.uuid4())
-    temp_dir = os.path.join("data", "temp")
-    os.makedirs(temp_dir, exist_ok=True)
-    file_path = os.path.join(temp_dir, f"{job_id}.pdf")
-    
-    with open(file_path, "wb") as buffer:
-        content = await cv_file.read()
-        buffer.write(content)
-        
-    # 4. Spam Validation
-    is_cv, reason = await validate_cv_spam(file_path)
-    if not is_cv:
-        os.remove(file_path)
-        raise HTTPException(status_code=400, detail=f"File rejected: {reason}")
-        
-    # 5. Cloudinary Upload (Optional/Async) - We can do this in the background, but let's do it here quickly
-    cloudinary_url = None
     try:
-        if settings.cloud_name:
-            res = cloudinary.uploader.upload(file_path, folder="cv_reviews")
-            cloudinary_url = res.get("secure_url")
+        client_ip = request.client.host
+        logger.info(f"Received job submission from {client_ip}")
+        
+        # 1. Anti-bot Rate Limiter (5 per day)
+        try:
+            await check_rate_limit(client_ip, max_requests=5)
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Rate limit check failed: {e}")
+        
+        # 2. File Validation
+        if not cv_file.filename or not cv_file.filename.lower().endswith(".pdf"):
+            raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
+        
+        # 3. Save Temp File
+        job_id = str(uuid.uuid4())
+        temp_dir = os.path.join("data", "temp")
+        os.makedirs(temp_dir, exist_ok=True)
+        file_path = os.path.join(temp_dir, f"{job_id}.pdf")
+        
+        with open(file_path, "wb") as buffer:
+            content = await cv_file.read()
+            buffer.write(content)
+            
+        # 4. Spam Validation
+        try:
+            is_cv, reason = await validate_cv_spam(file_path)
+            if not is_cv:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                raise HTTPException(status_code=400, detail=f"File rejected: {reason}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Spam validation failed: {e}")
+            
+        # 5. Cloudinary Upload
+        cloudinary_url = None
+        try:
+            if settings.cloud_name:
+                import asyncio
+                from functools import partial
+                loop = asyncio.get_event_loop()
+                res = await loop.run_in_executor(
+                    None, 
+                    partial(cloudinary.uploader.upload, file_path, folder="cv_reviews")
+                )
+                cloudinary_url = res.get("secure_url")
+        except Exception as e:
+            logger.error(f"Cloudinary upload failed: {e}")
+            
+        # 6. Store in DB (Disabled for now due to connection hang)
+        # try:
+        #     from app.core.database import db_manager
+        #     from app.schemas.db import CVRecord
+        #     if db_manager.db is not None:
+        #         cv_record = CVRecord(
+        #             job_id=job_id,
+        #             filename=cv_file.filename,
+        #             cloudinary_url=cloudinary_url,
+        #             is_valid_cv=True
+        #         )
+        #         await db_manager.db["cv_records"].insert_one(cv_record.model_dump())
+        # except Exception as e:
+        #     logger.error(f"DB storage failed: {e}")
+
+
+            
+        # Store job info in memory
+        jobs_store[job_id] = {
+            "file_path": file_path,
+            "filename": cv_file.filename,
+            "jd_text": jd_text,
+            "correlation_id": set_correlation_id()
+        }
+        
+        return {"job_id": job_id, "message": "Job submitted successfully. Connect to stream."}
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Cloudinary upload failed: {e}")
-        
-    # 6. Store in DB (Simulated here if DB not fully wired, else use CVRecord)
-    from app.core.database import db_manager
-    from app.schemas.db import CVRecord
-    if db_manager.db is not None:
-        cv_record = CVRecord(
-            job_id=job_id,
-            filename=cv_file.filename,
-            cloudinary_url=cloudinary_url,
-            is_valid_cv=True
-        )
-        await db_manager.db["cv_records"].insert_one(cv_record.model_dump())
-        
-    # Store job info in memory
-    jobs_store[job_id] = {
-        "file_path": file_path,
-        "filename": cv_file.filename,
-        "jd_text": jd_text,
-        "correlation_id": set_correlation_id()
-    }
-    
-    return {"job_id": job_id, "message": "Job submitted successfully. Connect to stream."}
+        logger.error(f"Fatal error in submit_job: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/stream/{job_id}")
 async def stream_job(job_id: str):

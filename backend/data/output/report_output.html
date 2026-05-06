@@ -1,0 +1,315 @@
+
+    <!DOCTYPE html>
+    <html lang="vi">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Phân Tích Resume - Nguyen Thanh Duy Tan</title>
+        <style>
+            :root {
+                --primary: #0f172a;
+                --accent: #2563eb;
+                --success: #059669;
+                --warning: #d97706;
+                --danger: #ef4444;
+                --bg: #fdfdfd;
+                --text: #334155;
+                --border: #e2e8f0;
+            }
+            body { font-family: 'Inter', -apple-system, sans-serif; line-height: 1.6; color: var(--text); background-color: var(--bg); margin: 0; padding: 60px 20px; }
+            .container { max-width: 850px; margin: 0 auto; }
+
+            header { border-bottom: 2px solid var(--primary); padding-bottom: 20px; margin-bottom: 40px; }
+            .brand { font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: var(--accent); }
+            .report-title { font-size: 32px; font-weight: 900; color: var(--primary); margin: 5px 0; }
+            .report-meta { font-size: 12px; color: #94a3b8; margin-top: 5px; }
+
+            .candidate-info { display: flex; gap: 40px; margin-bottom: 40px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+            .info-item .label { font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700; letter-spacing: 0.5px; }
+            .info-item .value { font-size: 16px; font-weight: 600; color: var(--primary); }
+
+            .score-card { display: flex; align-items: center; gap: 30px; background: #fff; border: 1px solid var(--border); padding: 30px; border-radius: 4px; margin-bottom: 40px; }
+            .final-score { font-size: 64px; font-weight: 900; color: var(--primary); }
+            .score-info { flex: 1; }
+            .score-status { font-weight: 700; color: var(--accent); text-transform: uppercase; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+            .summary-text { font-size: 15px; color: #64748b; margin-top: 5px; }
+
+            .confidence-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.3px; }
+
+            h2 { font-size: 20px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-top: 60px; margin-bottom: 25px; display: flex; align-items: center; gap: 10px; }
+            h2::after { content: ""; height: 1px; background: var(--border); flex: 1; }
+
+            .phase-card { margin-bottom: 40px; }
+            .phase-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+            .phase-title { font-size: 16px; font-weight: 700; color: var(--primary); }
+            .phase-score { font-weight: 800; display: flex; align-items: center; gap: 8px; }
+
+            .details-container { display: grid; gap: 20px; }
+            .detail-item { background: #fff; border: 1px solid var(--border); padding: 20px; border-radius: 4px; }
+            .detail-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; margin-bottom: 10px; font-size: 14px; }
+            .detail-title { color: var(--primary); }
+            .detail-score { color: var(--success); font-size: 15px; }
+            .detail-body p { margin: 0; font-size: 14px; color: #475569; }
+
+            .example-box, .suggestion-box, .improved-box, .era-box { margin-top: 15px; padding: 12px 15px; border-radius: 4px; font-size: 13px; }
+            .example-box { background: #f8fafc; border-left: 3px solid var(--accent); }
+            .suggestion-box { background: #fffbeb; border-left: 3px solid var(--warning); }
+            .improved-box { background: #f0fdf4; border-left: 3px solid var(--success); }
+            .era-box { background: #f1f5f9; border-left: 3px solid #94a3b8; font-style: italic; }
+
+            .validation-warning { background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid var(--danger); padding: 15px 20px; border-radius: 4px; margin-bottom: 30px; font-size: 13px; }
+            .adjustments-note { background: #fffbeb; border: 1px solid #fed7aa; border-left: 4px solid var(--warning); padding: 15px 20px; border-radius: 4px; margin-bottom: 30px; font-size: 13px; }
+
+            ul { padding-left: 18px; margin: 5px 0; }
+            li { margin-bottom: 4px; }
+
+            .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 40px; }
+            .highlight-item h3 { font-size: 14px; font-weight: 700; text-transform: uppercase; margin-bottom: 15px; color: var(--primary); }
+            .highlight-item ul { font-size: 14px; color: #475569; }
+
+            /* JD Matching Styles */
+            .jd-card { background: #fff; border: 1px solid var(--border); padding: 30px; border-radius: 4px; margin-bottom: 40px; }
+            .jd-header { display: flex; align-items: center; gap: 25px; margin-bottom: 25px; }
+            .jd-score { font-size: 48px; font-weight: 900; color: var(--primary); }
+            .jd-score-unit { font-size: 20px; color: #94a3b8; }
+            .jd-info { flex: 1; }
+            .skill-section { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+            .skill-group h4 { font-size: 13px; margin-bottom: 10px; }
+            .skill-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+            .skill-tag { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+            .skill-matched { background: #dcfce7; color: #166534; }
+            .skill-missing { background: #fee2e2; color: #991b1b; }
+            .skill-bonus { background: #dbeafe; color: #1e40af; }
+
+            .footer-info { margin-top: 80px; padding-top: 30px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; color: #94a3b8; font-size: 12px; flex-wrap: wrap; gap: 10px; }
+
+            @media (max-width: 600px) {
+                .candidate-info, .grid-2 { flex-direction: column; grid-template-columns: 1fr; gap: 20px; }
+                .skill-section { grid-template-columns: 1fr; }
+                .jd-header { flex-direction: column; text-align: center; }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <div class="brand">DigiSource Intelligence</div>
+                <div class="report-title">Báo Cáo Phân Tích Resume</div>
+                <div class="report-meta">Pipeline v2.0 — 06/05/2026 12:46 UTC</div>
+            </header>
+
+            <div class="candidate-info">
+                <div class="info-item">
+                    <div class="label">Tên Ứng Viên</div>
+                    <div class="value">Nguyen Thanh Duy Tan</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Cấp Độ Chuyên Môn</div>
+                    <div class="value">Intern</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Ngành Nghề</div>
+                    <div class="value">IT</div>
+                </div>
+            </div>
+
+            <div class="score-card">
+                <div class="final-score">85</div>
+                <div class="score-info">
+                    <div class="score-status">
+                        Chỉ Số Đánh Giá / 100
+                        <span class="confidence-badge" style="background:#22c55e">Cao</span>
+                    </div>
+                    <div class="summary-text">Ứng viên có kinh nghiệm làm việc thực tế và kỹ năng công nghệ tốt, nhưng cần hoàn thiện các dự án và cải thiện về định dạng CV, chính tả, và ngữ pháp.</div>
+                </div>
+            </div>
+
+            
+            
+        <div class="adjustments-note">
+            <strong>Điều Chỉnh Điểm:</strong>
+            <ul><li>phase2: +42 điểm</li><li>phase3: +26 điểm</li><li>phase4: +7 điểm</li></ul>
+        </div>
+        
+            
+        <h2>Đánh Giá Toàn Diện</h2>
+        <div style="background: #fff; border: 1px solid var(--border); padding: 30px; border-radius: 4px; margin-bottom: 40px; font-size: 15px; line-height: 1.8; color: #334155; white-space: pre-wrap;">Nguyễn Thanh Duy Tán là một ứng viên có kinh nghiệm làm việc thực tế trong vai trò Fullstack Intern, thể hiện kỹ năng và công nghệ hiện đại trong các dự án MUSIC WEBSITE và QUIZ WEBSITE. Tuy nhiên, CV của ứng viên chưa tuân thủ đúng định dạng, thiếu địa chỉ cụ thể, và có lỗi chính tả, ngữ pháp. Để cải thiện, ứng viên cần hoàn thiện các dự án MUSIC WEBSITE và QUIZ WEBSITE, cung cấp địa chỉ cụ thể, liên kết LinkedIn, và cải thiện tên file CV. Ngoài ra, ứng viên cần tìm kiếm cơ hội thực tập hoặc làm việc part-time để tăng thêm kinh nghiệm thực tế, học và cải thiện kỹ năng lãnh đạo, và học và đạt chứng chỉ ngoại ngữ để tăng khả năng giao tiếp và làm việc quốc tế. Với sự cải thiện này, ứng viên sẽ phù hợp hơn với tiêu chuẩn ngành IT và có cơ hội phát triển sự nghiệp tốt hơn.</div>
+        
+
+            <h2>Phân Tích Từng Phần</h2>
+
+            <div class="phase-card">
+                <div class="phase-header">
+                    <span class="phase-title">GIAI ĐOẠN 2: Nền tảng & Tối ưu ATS</span>
+                    <div class="phase-score">
+                        <span class="confidence-badge" style="background:#22c55e">Cao</span>
+                        <span style="color:#22c55e">42 / 60</span>
+                    </div>
+                </div>
+                <div class="details-container">
+            <div class="detail-item">
+                <div class="detail-header">
+                    <span class="detail-title">Định dạng & ATS</span>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="confidence-badge" style="background:#eab308">Trung bình</span>
+                        <span class="detail-score">13đ</span>
+                    </div>
+                </div>
+                <div class="detail-body">
+                    <p>CV chưa tuân thủ đúng định dạng và không đạt yêu cầu về kích thước. Tên file không phù hợp.</p>
+            <div class="example-box"><strong>Ví dụ đề xuất:</strong><ul><li>NguyenThanhDuyTan_Fullstack_Intern.pdf</li><li>TanNguyen234_MusicApp.pdf</li><li>TanNguyen234_QuizApp.pdf</li></ul></div></div></div>
+            <div class="detail-item">
+                <div class="detail-header">
+                    <span class="detail-title">Nền tảng chuyên nghiệp</span>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="confidence-badge" style="background:#22c55e">Cao</span>
+                        <span class="detail-score">17đ</span>
+                    </div>
+                </div>
+                <div class="detail-body">
+                    <p>CV thiếu địa chỉ cụ thể và không có liên kết LinkedIn. Tên, SĐT, và Email được cung cấp đầy đủ.</p>
+            </div></div>
+            <div class="detail-item">
+                <div class="detail-header">
+                    <span class="detail-title">Chất lượng nội dung</span>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="confidence-badge" style="background:#22c55e">Cao</span>
+                        <span class="detail-score">12đ</span>
+                    </div>
+                </div>
+                <div class="detail-body">
+                    <p>CV có lỗi chính tả và ngữ pháp. Cần sử dụng động từ hành động và loại bỏ từ lặp đi lặp lại.</p>
+            <div class="suggestion-box"><strong>Gợi ý cụ thể:</strong><ul><li>Short-term: Gain hands-on experience and successfully complete an internship at a technology company.</li><li>Long-term: Become a highly skilled fullstack developer.</li><li>Music Streaming: Browse and play songs based on themes and genres.</li><li>User Authentication: Sign up, login, and password recovery.</li><li>Admin Dashboard: Manage topics, songs, user accounts, and admin accounts (CRUD operations).</li><li>Server-Side Rendering (SSR): Using Pug templates for better performance and SEO.</li><li>Responsive Design: Optimized for all screen sizes using CSS and Bootstrap.</li></ul></div></div></div></div>
+            </div>
+
+            <div class="phase-card">
+                <div class="phase-header">
+                    <span class="phase-title">GIAI ĐOẠN 3: Đánh giá chuyên môn kỹ thuật</span>
+                    <div class="phase-score">
+                        <span class="confidence-badge" style="background:#22c55e">Cao</span>
+                        <span style="color:#22c55e">26 / 40</span>
+                    </div>
+                </div>
+                <div class="details-container">
+            <div class="detail-item">
+                <div class="detail-header">
+                    <span class="detail-title">Kinh nghiệm làm việc</span>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="confidence-badge" style="background:#22c55e">Cao</span>
+                        <span class="detail-score">5đ</span>
+                    </div>
+                </div>
+                <div class="detail-body">
+                    <p>Ứng viên có kinh nghiệm làm việc thực tế trong vai trò Fullstack Intern, nhưng chưa có dự án hoàn thiện.</p>
+            <div class="improved-box"><strong>Dòng mô tả cải thiện:</strong><ul><li>Có kinh nghiệm làm việc thực tế trong vai trò Fullstack Intern tại một công ty công nghệ.</li><li>Đã tham gia phát triển dự án MUSIC WEBSITE và QUIZ WEBSITE, nhưng chưa có demo hoàn thiện.</li></ul></div></div></div>
+            <div class="detail-item">
+                <div class="detail-header">
+                    <span class="detail-title">Minh chứng kỹ thuật</span>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="confidence-badge" style="background:#22c55e">Cao</span>
+                        <span class="detail-score">15đ</span>
+                    </div>
+                </div>
+                <div class="detail-body">
+                    <p>Công nghệ và kỹ năng trong CV được thể hiện rõ trong các dự án, nhưng chưa có demo hoàn thiện. Dự án MUSIC WEBSITE sử dụng Pug, CSS, JavaScript, Bootstrap, ExpressJS, TypeScript, MongoDB, Mongoose, nhưng chưa có demo hoàn thiện. Dự án QUIZ WEBSITE sử dụng ReactJS, Redux, React Router DOM, SCSS, Ant Design, ExpressJS, TypeScript, Socket.IO, MongoDB, Mongoose, nhưng chưa có demo hoàn thiện.</p>
+            </div></div>
+            <div class="detail-item">
+                <div class="detail-header">
+                    <span class="detail-title">Dự án triển khai</span>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="confidence-badge" style="background:#22c55e">Cao</span>
+                        <span class="detail-score">6đ</span>
+                    </div>
+                </div>
+                <div class="detail-body">
+                    <p>Dự án MUSIC WEBSITE và QUIZ WEBSITE đều có tiềm năng phát triển, nhưng chưa có demo hoàn thiện. Dự án MUSIC WEBSITE có Server-Side Rendering (SSR) và Responsive Design, nhưng chưa có demo hoàn thiện. Dự án QUIZ WEBSITE có Real-Time Chat và Performance Analytics, nhưng chưa có demo hoàn thiện.</p>
+            <div class="era-box"><strong>Đánh giá xu hướng:</strong> Dự án MUSIC WEBSITE và QUIZ WEBSITE đều sử dụng công nghệ hiện đại như ReactJS, TypeScript, MongoDB, Mongoose, nhưng chưa có demo hoàn thiện.</div></div></div></div>
+            </div>
+
+            <div class="phase-card">
+                <div class="phase-header">
+                    <span class="phase-title">GIAI ĐOẠN 4: Yếu tố bổ sung (Điểm thưởng)</span>
+                    <div class="phase-score">
+                        <span class="confidence-badge" style="background:#22c55e">Cao</span>
+                        <span style="color:#22c55e">+7 Điểm</span>
+                    </div>
+                </div>
+                <div class="details-container">
+            <div class="detail-item">
+                <div class="detail-header">
+                    <span class="detail-title">Khả năng lãnh đạo</span>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="confidence-badge" style="background:#ef4444">Rất thấp</span>
+                        <span class="detail-score">0đ</span>
+                    </div>
+                </div>
+                <div class="detail-body">
+                    <p>Chưa có minh chứng về khả năng lãnh đạo.</p>
+            </div></div>
+            <div class="detail-item">
+                <div class="detail-header">
+                    <span class="detail-title">Khả năng Ngoại ngữ</span>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="confidence-badge" style="background:#eab308">Trung bình</span>
+                        <span class="detail-score">1đ</span>
+                    </div>
+                </div>
+                <div class="detail-body">
+                    <p>Có thể đọc và hiểu tiếng Anh, nhưng chưa có chứng chỉ ngoại ngữ.</p>
+            </div></div>
+            <div class="detail-item">
+                <div class="detail-header">
+                    <span class="detail-title">Giải thưởng & Thành tích</span>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span class="confidence-badge" style="background:#ef4444">Rất thấp</span>
+                        <span class="detail-score">0đ</span>
+                    </div>
+                </div>
+                <div class="detail-body">
+                    <p>Chưa có minh chứng về giải thưởng.</p>
+            </div></div></div>
+            </div>
+
+            
+
+            <div class="grid-2">
+                <div class="highlight-item">
+                    <h3>Điểm Mạnh Cốt Lõi</h3>
+                    <ul><li>Ứng viên có kinh nghiệm làm việc thực tế trong vai trò Fullstack Intern.</li><li>Ứng viên thể hiện kỹ năng và công nghệ hiện đại trong các dự án MUSIC WEBSITE và QUIZ WEBSITE.</li><li>Ứng viên có khả năng tự học và thực hành qua các dự án fullstack.</li><li>Ứng viên thể hiện sự am hiểu về các công nghệ như Pug, CSS, JavaScript, Bootstrap, ReactJS, Redux, React Router DOM, SCSS, Ant Design, ExpressJS, TypeScript, Socket.IO, MongoDB, Mongoose.</li></ul>
+                </div>
+                <div class="highlight-item">
+                    <h3>Cải Thiện Ưu Tiên</h3>
+                    <ul><li>Hoàn thiện các dự án MUSIC WEBSITE và QUIZ WEBSITE để tăng tính thuyết phục.</li><li>Tìm kiếm và cung cấp địa chỉ cụ thể, liên kết LinkedIn, và cải thiện tên file CV.</li><li>Học và cải thiện kỹ năng lãnh đạo thông qua các hoạt động nhóm và dự án.</li><li>Học và đạt chứng chỉ ngoại ngữ để tăng khả năng giao tiếp và làm việc quốc tế.</li></ul>
+                </div>
+            </div>
+
+            <h2>Lộ Trình Chiến Lược</h2>
+            <div style="background: #fff; border: 1px solid var(--border); padding: 30px; border-radius: 4px;">
+                <div class="highlight-item" style="margin-bottom: 30px;">
+                    <h3>Lời Khuyên Phát Triển Sự Nghiệp</h3>
+                    <ul><li>Tiếp tục học và nâng cao kỹ năng lập trình, đặc biệt là về các công nghệ hiện đại.</li><li>Tham gia các dự án thực tế hoặc khởi nghiệp để tích lũy thêm kinh nghiệm làm việc.</li><li>Tìm kiếm cơ hội thực tập hoặc làm việc part-time để tăng thêm kinh nghiệm thực tế.</li><li>Tham gia các khóa học về lãnh đạo và quản lý để phát triển kỹ năng này.</li><li>Học và cải thiện kỹ năng giao tiếp và viết CV chuyên nghiệp.</li></ul>
+                </div>
+
+                <div class="highlight-item" style="margin-bottom: 30px;">
+                    <h3>Tiêu Chuẩn & Điểm Chuẩn Ngành</h3>
+                    <p style="font-size: 14px; color: #475569;">Ứng viên cần cải thiện về định dạng CV, chính tả, ngữ pháp, và hoàn thiện các dự án để phù hợp với tiêu chuẩn ngành IT.</p>
+                </div>
+
+                <div class="highlight-item">
+                    <h3>Từ Khóa Ngành Trọng Tâm</h3>
+                    <div style="font-size: 13px; font-family: 'JetBrains Mono', monospace; background: #f8fafc; padding: 15px; border: 1px solid var(--border); border-radius: 4px; color: var(--accent);">
+                        Fullstack Developer, ReactJS, TypeScript, MongoDB, Mongoose, ExpressJS, Pug, Responsive Design, Server-Side Rendering (SSR), Real-Time Chat, Performance Analytics
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-info">
+                <span>Được tạo bởi Hệ thống DigiSource Scorer v2.0</span>
+                <span>Ngày: 06/05/2026 12:46 UTC</span>
+                <span>Mức tin cậy: <span class="confidence-badge" style="background:#22c55e">Cao</span></span>
+                <span>Báo cáo phân tích bảo mật</span>
+            </div>
+        </div>
+    </body>
+    </html>
+    
