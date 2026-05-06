@@ -346,16 +346,18 @@ textarea:focus {
 }
 
 .terminal {
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
     border-radius: 20px;
     padding: 1.5rem;
     height: 300px;
     overflow-y: auto;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
-    font-size: 0.9rem;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Inter', monospace;
+    font-size: 0.95rem;
     margin-bottom: 2rem;
-    border: 1px solid var(--glass-border);
-    box-shadow: inset 0 0 30px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+    color: #f8fafc;
 }
 
 .terminal ul {
@@ -363,18 +365,29 @@ textarea:focus {
 }
 
 .terminal li {
-    margin-bottom: 0.75rem;
-    color: #e5e7eb;
+    margin-bottom: 0.85rem;
     display: flex;
     align-items: flex-start;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    border-left: 4px solid var(--primary-light);
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.terminal li:hover {
+    transform: translateX(5px);
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .log-time {
-    color: var(--primary-light);
+    color: var(--secondary-light);
     font-weight: 700;
     margin-right: 0.75rem;
-    opacity: 0.7;
+    opacity: 0.9;
     flex-shrink: 0;
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: 0.05em;
 }
 
 .progress-container {

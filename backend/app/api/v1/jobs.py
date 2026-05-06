@@ -92,30 +92,33 @@ async def submit_job(
         except Exception as e:
             logger.error(f"Spam validation failed: {e}")
             
-        # 5. Cloudinary Upload
-        cloudinary_url = None
+        # 5. Extract PDF Base64
+        import base64
+        pdf_data = None
         try:
-            if settings.cloud_name:
-                import asyncio
-                from functools import partial
-                loop = asyncio.get_event_loop()
-                res = await loop.run_in_executor(
-                    None, 
-                    partial(cloudinary.uploader.upload, file_path, folder="cv_reviews")
-                )
-                cloudinary_url = res.get("secure_url")
+            with open(file_path, "rb") as f:
+                pdf_data = base64.b64encode(f.read()).decode("utf-8")
         except Exception as e:
-            logger.error(f"Cloudinary upload failed: {e}")
+            logger.error(f"Failed to read PDF for base64 encoding: {e}")
             
         # 6. Store in DB
         try:
             from app.core.database import db_manager
             from app.schemas.db import CVRecord
             if db_manager.db is not None:
+                # Extract initial raw text from first page for the record
+                import pymupdf4llm
+                raw_text_preview = ""
+                try:
+                    raw_text_preview = pymupdf4llm.to_markdown(file_path, pages=[0])
+                except Exception:
+                    pass
+                    
                 cv_record = CVRecord(
                     job_id=job_id,
                     filename=cv_file.filename,
-                    cloudinary_url=cloudinary_url,
+                    pdf_data=pdf_data,
+                    raw_text=raw_text_preview,
                     jd_text=jd_text,
                     is_valid_cv=True
                 )
@@ -202,6 +205,9 @@ async def stream_job(job_id: str):
                         # Update DB with results
                         from app.core.database import db_manager
                         if db_manager.db is not None:
+                            # Try to get cleaned text from the latest state if possible. 
+                            # updates might not contain it, but we'll try. 
+                            # Or we can just leave the raw_text as is.
                             await db_manager.db["cv_records"].update_one(
                                 {"job_id": job_id},
                                 {
@@ -228,3 +234,145 @@ async def stream_job(job_id: str):
                 os.remove(file_path)
 
     return EventSourceResponse(event_generator())
+
+
+from fastapi.responses import Response
+
+@router.get("/download/{job_id}")
+async def download_report(job_id: str):
+    from app.core.database import db_manager
+    if db_manager.db is None:
+        raise HTTPException(status_code=500, detail="Database not connected")
+        
+    record = await db_manager.db["cv_records"].find_one({"job_id": job_id})
+    if not record or not record.get("report_html"):
+        raise HTTPException(status_code=404, detail="Report not found or not ready")
+        
+    report_html = record["report_html"]
+    
+    # Wrap in modern template for WeasyPrint
+    full_html = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            @page {{
+                margin: 20mm;
+                size: A4;
+                @bottom-right {{
+                    content: "Page " counter(page) " of " counter(pages);
+                    font-family: 'Inter', sans-serif;
+                    font-size: 9pt;
+                    color: #64748b;
+                }}
+                @top-left {{
+                    content: "AI CV Analysis Report";
+                    font-family: 'Inter', sans-serif;
+                    font-size: 9pt;
+                    color: #94a3b8;
+                }}
+            }}
+            body {{
+                font-family: 'Inter', -apple-system, sans-serif;
+                color: #0f172a;
+                line-height: 1.6;
+                font-size: 11pt;
+                background-color: #ffffff;
+            }}
+            h1, h2, h3, h4 {{
+                font-family: 'Outfit', sans-serif;
+                color: #1e293b;
+                margin-top: 1.5em;
+                margin-bottom: 0.5em;
+            }}
+            h1 {{
+                font-size: 24pt;
+                color: #2563eb;
+                border-bottom: 2px solid #e2e8f0;
+                padding-bottom: 10px;
+                text-align: center;
+                margin-top: 0;
+            }}
+            h2 {{
+                font-size: 18pt;
+                color: #334155;
+                border-bottom: 1px solid #cbd5e1;
+                padding-bottom: 5px;
+                page-break-after: avoid;
+            }}
+            .score-badge {{
+                display: inline-block;
+                padding: 5px 15px;
+                border-radius: 20px;
+                background-color: #eff6ff;
+                color: #1d4ed8;
+                font-weight: 600;
+                border: 1px solid #bfdbfe;
+                margin-bottom: 15px;
+            }}
+            .card {{
+                background-color: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 20px;
+                page-break-inside: avoid;
+            }}
+            ul, ol {{
+                padding-left: 20px;
+            }}
+            li {{
+                margin-bottom: 5px;
+            }}
+            .critical-issue {{
+                color: #b91c1c;
+                background-color: #fef2f2;
+                padding: 10px;
+                border-left: 4px solid #ef4444;
+                margin-bottom: 10px;
+            }}
+            .recommendation {{
+                color: #047857;
+                background-color: #ecfdf5;
+                padding: 10px;
+                border-left: 4px solid #10b981;
+                margin-bottom: 10px;
+            }}
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+            }}
+            th, td {{
+                border: 1px solid #e2e8f0;
+                padding: 10px;
+                text-align: left;
+            }}
+            th {{
+                background-color: #f1f5f9;
+                font-weight: 600;
+            }}
+        </style>
+    </head>
+    <body>
+        {report_html}
+    </body>
+    </html>
+    """
+    
+    # Add auto-print script
+    full_html += """
+    <script>
+        window.onload = function() {
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        };
+    </script>
+    """
+    
+    return Response(
+        content=full_html,
+        media_type="text/html"
+    )

@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fileMsg.textContent = e.target.files[0].name;
             fileMsg.style.color = '#f8fafc';
         } else {
-            fileMsg.textContent = 'Choose a PDF file or drag it here';
+            fileMsg.textContent = 'Chọn một file PDF hoặc kéo thả vào đây';
             fileMsg.style.color = 'var(--text-muted)';
         }
     });
@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const file = fileInput.files[0];
         if (!file) {
-            showError("Please select a CV file.");
+            showError("Vui lòng chọn một file CV.");
             return;
         }
         
@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
         errorMsg.classList.add('hidden');
         submitBtn.disabled = true;
         spinner.classList.remove('hidden');
-        submitBtn.querySelector('span').textContent = 'Uploading & Validating...';
+        submitBtn.querySelector('span').textContent = 'Đang tải lên & Kiểm tra...';
         
         const formData = new FormData();
         formData.append('cv_file', file);
@@ -82,11 +82,14 @@ document.addEventListener('DOMContentLoaded', () => {
             showError(err.message);
             submitBtn.disabled = false;
             spinner.classList.add('hidden');
-            submitBtn.querySelector('span').textContent = 'Start AI Analysis';
+            submitBtn.querySelector('span').textContent = 'Bắt đầu Phân tích AI';
         }
     });
     
+    let currentJobId = null;
+
     function startStream(jobId) {
+        currentJobId = jobId;
         const eventSource = new EventSource(`/api/v1/jobs/stream/${jobId}`);
         let progress = 10;
         progressBar.style.width = `${progress}%`;
@@ -99,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         eventSource.addEventListener('complete', (e) => {
-            addLog("Analysis complete! Preparing report...");
+            addLog("Phân tích hoàn tất! Đang chuẩn bị báo cáo...");
             progressBar.style.width = '100%';
             
             const data = JSON.parse(e.data);
@@ -114,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         eventSource.addEventListener('error', (e) => {
             console.error("SSE Error:", e);
-            addLog(`Error: Connection lost or pipeline failed.`);
+            addLog(`Lỗi: Mất kết nối hoặc quá trình xử lý thất bại.`);
             eventSource.close();
             
             // Offer to go back
@@ -123,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusPanel.classList.add('hidden');
                 submitBtn.disabled = false;
                 spinner.classList.add('hidden');
-                submitBtn.querySelector('span').textContent = 'Start AI Analysis';
+                submitBtn.querySelector('span').textContent = 'Bắt đầu Phân tích AI';
             }, 3000);
         });
     }
@@ -137,26 +140,22 @@ document.addEventListener('DOMContentLoaded', () => {
         resultPanel.classList.add('hidden');
         uploadPanel.classList.remove('hidden');
         form.reset();
-        fileMsg.textContent = 'Choose a PDF file or drag it here';
+        fileMsg.textContent = 'Chọn một file PDF hoặc kéo thả vào đây';
         fileMsg.style.color = 'var(--text-muted)';
         submitBtn.disabled = false;
         spinner.classList.add('hidden');
-        submitBtn.querySelector('span').textContent = 'Start AI Analysis';
-        logList.innerHTML = '<li><span class="log-time">[System]</span> Initializing LangGraph multi-agent pipeline...</li>';
+        submitBtn.querySelector('span').textContent = 'Bắt đầu Phân tích AI';
+        logList.innerHTML = '<li><span class="log-time">[Hệ thống]</span> Đang khởi tạo hệ thống phân tích LangGraph...</li>';
         progressBar.style.width = '0%';
     });
     
     downloadPdfBtn.addEventListener('click', () => {
-        const element = document.getElementById('report-content');
-        const opt = {
-            margin:       1,
-            filename:     'AI_CV_Evaluation_Report.pdf',
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true },
-            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-        };
+        if (!currentJobId) {
+            showError("Không có báo cáo nào để tải xuống.");
+            return;
+        }
         
-        // New Promise-based usage:
-        html2pdf().set(opt).from(element).save();
+        // Trigger download from backend API using WeasyPrint
+        window.open(`/api/v1/jobs/download/${currentJobId}`, '_blank');
     });
 });

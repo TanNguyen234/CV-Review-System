@@ -13,7 +13,8 @@ class RateLimitRecord(BaseModel):
 class CVRecord(BaseModel):
     job_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     filename: str
-    cloudinary_url: Optional[str] = None
+    pdf_data: Optional[str] = None # Base64 encoded PDF
+    raw_text: Optional[str] = None # Extracted text
     status: str = "processing"  # processing, completed, failed, spam
     is_valid_cv: bool = True
     spam_reason: Optional[str] = None
