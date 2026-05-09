@@ -70,6 +70,26 @@ def _render_jd_section(jd_analysis: dict) -> str:
         [f'<span class="skill-tag skill-bonus">{s}</span>' for s in bonus]
     )
 
+    interview_questions = jd_analysis.get("interview_questions", [])
+    interview_html = ""
+    if interview_questions:
+        questions_list = "".join([
+            f'''
+            <div style="background: #f8fafc; padding: 15px; border-left: 3px solid #3b82f6; margin-bottom: 10px; border-radius: 4px;">
+                <h4 style="color:#1e40af; margin-top:0; margin-bottom:5px;">Q: {q.get("question", "")}</h4>
+                <p style="font-size:13px; color:#475569; margin:0 0 5px 0;"><strong>Mục đích:</strong> {q.get("intent", "")}</p>
+                <p style="font-size:13px; color:#059669; margin:0;"><strong>Gợi ý trả lời:</strong> {q.get("expected_answer", "")}</p>
+            </div>
+            '''
+            for q in interview_questions
+        ])
+        interview_html = f"""
+        <div class="interview-section" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border);">
+            <h3 style="color:#1e293b; margin-bottom:15px;">Câu Hỏi Phỏng Vấn Đề Xuất (Dựa trên Skill Gaps)</h3>
+            {questions_list}
+        </div>
+        """
+
     return f"""
     <h2>So Khớp Với Job Description</h2>
     <div class="jd-card">
@@ -96,6 +116,8 @@ def _render_jd_section(jd_analysis: dict) -> str:
                 <div class="skill-tags">{bonus_html}</div>
             </div>
         </div>
+        
+        {interview_html}
     </div>
     """
 
@@ -118,6 +140,7 @@ def generate_html(state: AgentState) -> str:
     p2 = scores.get("PHASE2", {})
     p3 = scores.get("PHASE3", {})
     p4 = scores.get("PHASE4", {})
+    project_eval = scores.get("PROJECT_EVAL", {})
 
     # Processing metadata
     metadata = state.get("processing_metadata", {})
@@ -208,6 +231,92 @@ def generate_html(state: AgentState) -> str:
     # JD Section
     jd_analysis = state.get("jd_analysis")
     jd_section_html = _render_jd_section(jd_analysis)
+
+    # Market Insight Section
+    market_insight = state.get("market_insight")
+    market_html = ""
+    if market_insight:
+        trending = "".join([f'<span class="skill-tag skill-bonus">{s}</span>' for s in market_insight.get('trending_skills', [])])
+        market_html = f"""
+        <h2>Phân Tích Thị Trường Tuyển Dụng</h2>
+        <div style="background: #fff; border: 1px solid var(--border); padding: 30px; border-radius: 4px; margin-bottom: 40px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div style="background: #f8fafc; padding: 15px; border-radius: 4px;">
+                    <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 5px;">Mức Lương Tham Khảo</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #059669;">{market_insight.get('salary_range', 'N/A')}</div>
+                </div>
+                <div style="background: #f8fafc; padding: 15px; border-radius: 4px;">
+                    <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 5px;">Nhu Cầu Thị Trường</div>
+                    <div style="font-size: 14px; color: var(--primary);">{market_insight.get('market_demand', 'N/A')}</div>
+                </div>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 8px;">Kỹ Năng Xu Hướng (Trending):</div>
+                <div class="skill-tags">{trending}</div>
+            </div>
+            <div>
+                <div style="font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 8px;">Yêu Cầu Tiêu Chuẩn:</div>
+                <div style="font-size: 14px; color: #475569; line-height: 1.6;">{market_insight.get('standard_requirements', 'N/A')}</div>
+            </div>
+        </div>
+        """
+
+    # Project Evaluation Section
+    project_eval_html = ""
+    project_list = project_eval.get("projects", [])
+    if project_list:
+        complexity_colors = {
+            1: "#94a3b8", 2: "#22c55e", 3: "#eab308", 4: "#f97316", 5: "#ef4444"
+        }
+        complexity_labels = {
+            1: "Đơn giản", 2: "Cơ bản", 3: "Trung bình", 4: "Phức tạp", 5: "Enterprise"
+        }
+        projects_cards = ""
+        for proj in project_list:
+            crating = proj.get("complexity_rating", 1)
+            c_color = complexity_colors.get(crating, "#94a3b8")
+            c_label = complexity_labels.get(crating, "N/A")
+            dots = "".join([
+                f'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{c_color if i < crating else "#e2e8f0"};margin-right:3px;"></span>'
+                for i in range(5)
+            ])
+            projects_cards += f'''
+            <div style="background:#fff;border:1px solid var(--border);padding:20px;border-radius:4px;margin-bottom:15px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <h4 style="margin:0;color:var(--primary);font-size:15px;">{proj.get("project_name", "N/A")}</h4>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        {dots}
+                        <span style="font-size:11px;color:{c_color};font-weight:700;">{c_label}</span>
+                    </div>
+                </div>
+                <div style="font-size:13px;color:#475569;margin-bottom:8px;">
+                    <strong>Stack công nghệ:</strong> {proj.get("tech_stack_analysis", "")}
+                </div>
+                <div style="font-size:13px;color:#475569;margin-bottom:8px;">
+                    <strong>Vai trò:</strong> {proj.get("role_clarity", "")}
+                </div>
+                <div style="font-size:13px;color:#475569;margin-bottom:8px;">
+                    <strong>Impact:</strong> {proj.get("impact_assessment", "")}
+                </div>
+                <div style="background:#fffbeb;border-left:3px solid var(--warning);padding:10px 12px;border-radius:4px;font-size:12px;color:#92400e;">
+                    <strong>Gợi ý cải thiện:</strong> {proj.get("improvement_suggestion", "")}
+                </div>
+            </div>
+            '''
+
+        portfolio_score = project_eval.get("portfolio_score", 0)
+        overall_assessment = project_eval.get("overall_assessment", "")
+        project_eval_html = f"""
+        <h2>Đánh Giá Chi Tiết Từng Dự Án</h2>
+        <div style="background:#f8fafc;border:1px solid var(--border);padding:20px;border-radius:4px;margin-bottom:15px;display:flex;align-items:center;gap:20px;">
+            <div style="font-size:36px;font-weight:900;color:var(--primary);">{portfolio_score}<span style="font-size:16px;color:#94a3b8;">/10</span></div>
+            <div style="flex:1;">
+                <div style="font-size:12px;text-transform:uppercase;color:#94a3b8;font-weight:700;">Chất Lượng Portfolio</div>
+                <div style="font-size:14px;color:#475569;margin-top:3px;">{overall_assessment}</div>
+            </div>
+        </div>
+        {projects_cards}
+        """
 
     # Validation warning
     validation = state.get("validation_result", {})
@@ -413,6 +522,8 @@ def generate_html(state: AgentState) -> str:
             </div>
 
             {jd_section_html}
+            {market_html}
+            {project_eval_html}
 
             <div class="grid-2">
                 <div class="highlight-item">

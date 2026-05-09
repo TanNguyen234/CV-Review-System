@@ -5,7 +5,7 @@ Uses Annotated reducers for parallel fan-in support.
 """
 
 import operator
-from typing import TypedDict, Sequence, Dict, List, Annotated, Optional, Any
+from typing import TypedDict, Sequence, Dict, List, Annotated, Optional, Any, Union
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 
@@ -69,6 +69,21 @@ class MetaScore(TypedDict, total=False):
     score_adjustments: Dict[str, int]  # Any adjustments made by meta
 
 
+class InterviewQuestion(TypedDict, total=False):
+    """Typed schema for tailored interview questions."""
+    question: str
+    intent: str
+    expected_answer: str
+
+
+class MarketInsight(TypedDict, total=False):
+    """Typed schema for enriched market context."""
+    salary_range: str
+    market_demand: str
+    trending_skills: List[str]
+    standard_requirements: str
+
+
 class JDAnalysis(TypedDict, total=False):
     """Typed schema for Job Description analysis results."""
     match_score: int  # 0-100 overall match
@@ -78,6 +93,7 @@ class JDAnalysis(TypedDict, total=False):
     role_alignment: str
     experience_gap: str
     recommendation: str
+    interview_questions: List[InterviewQuestion]
 
 
 class ProcessingMetadata(TypedDict, total=False):
@@ -119,9 +135,11 @@ class AgentState(TypedDict, total=False):
     candidate_level: str
     industry: str
     dynamic_rubric: str
+    years_of_experience: float
 
     # --- Enrichment ---
     text_insights: Annotated[Dict[str, Any], merge_dicts]
+    market_insight: Optional[MarketInsight]
 
     # --- Evaluation Scores (parallel-safe merge) ---
     scores: Annotated[Dict[str, Any], merge_scores]

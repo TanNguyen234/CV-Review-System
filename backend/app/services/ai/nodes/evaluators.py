@@ -46,32 +46,34 @@ class PhaseResult(BaseModel):
     feedback: str = Field(description="Overall feedback for this phase")
 
 
-def _build_enrichment_context(state: AgentState) -> str:
+def _build_market_insight_context(state: AgentState) -> str:
     """
-    Build enrichment context string from RAG results for injection into prompts.
+    Build market insight context string from the structured MarketInsight
+    produced by the enrichment node. Used by Phase 3 evaluator.
     """
-    text_insights = state.get("text_insights", {})
-    if not text_insights:
+    market_insight = state.get("market_insight")
+    if not market_insight:
         return ""
 
-    rag_context = text_insights.get("rag_context", {})
-    if not rag_context:
-        return ""
+    parts = ["Ngữ cảnh thị trường tuyển dụng (dùng để đánh giá mức độ cập nhật của ứng viên):"]
 
-    results = rag_context.get("results", [])
-    if not results:
-        return ""
+    salary = market_insight.get("salary_range", "")
+    if salary:
+        parts.append(f"- Mức lương tham khảo: {salary}")
 
-    context_parts = [
-        "Ngữ cảnh bổ sung từ nghiên cứu thị trường (sử dụng để đánh giá chính xác hơn):"
-    ]
-    for i, result in enumerate(results[:3], 1):
-        title = result.get("title", "")
-        content = result.get("content", "")[:300]
-        if title or content:
-            context_parts.append(f"{i}. {title}: {content}")
+    demand = market_insight.get("market_demand", "")
+    if demand:
+        parts.append(f"- Nhu cầu thị trường: {demand}")
 
-    return "\n".join(context_parts)
+    trending = market_insight.get("trending_skills", [])
+    if trending:
+        parts.append(f"- Kỹ năng xu hướng: {', '.join(trending)}")
+
+    standards = market_insight.get("standard_requirements", "")
+    if standards:
+        parts.append(f"- Yêu cầu tiêu chuẩn ngành: {standards}")
+
+    return "\n".join(parts)
 
 
 def _evaluate_phase(
@@ -98,12 +100,12 @@ def _evaluate_phase(
         # Build format kwargs
         format_kwargs = {"dynamic_rubric": dynamic_rubric}
 
-        # Inject enrichment context for Phase 3
+        # Inject market insight context for Phase 3
         if inject_enrichment:
-            enrichment_ctx = _build_enrichment_context(state)
-            format_kwargs["enrichment_context"] = enrichment_ctx
-        elif "{enrichment_context}" in prompt_template:
-            format_kwargs["enrichment_context"] = ""
+            market_ctx = _build_market_insight_context(state)
+            format_kwargs["market_insight_context"] = market_ctx
+        elif "{market_insight_context}" in prompt_template:
+            format_kwargs["market_insight_context"] = ""
 
         formatted_prompt = prompt_template.format(**format_kwargs)
 

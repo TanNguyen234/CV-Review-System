@@ -51,7 +51,7 @@ YÊU CẦU QUAN TRỌNG VÀ TUYỆT ĐỐI (KHÔNG ĐƯỢC LÀM TRÁI):
 4. ĐỐI VỚI CẤP ĐỘ JUNIOR TRỞ LÊN: Kinh nghiệm làm việc thực tế (Practical Work Experience) là ĐIỂM CỨNG (Hard requirement). Nếu thiếu, phải trừ điểm nặng. Đối với Intern/Fresher, có thể linh động dùng dự án cá nhân để bù điểm.
 5. PHẢN HỒI HOÀN TOÀN BẰNG TIẾNG VIỆT, cực kỳ chi tiết, không ghi sơ xài.
 
-{enrichment_context}
+{market_insight_context}
 
 Các tiêu chí (Tổng 40 điểm):
 1. Experience Assessment (20đ):
@@ -135,21 +135,30 @@ Trả về JSON:
 """
 
 JD_ANALYSIS_PROMPT = """
-Bạn là một chuyên gia tuyển dụng công nghệ. Nhiệm vụ của bạn là phân tích mức độ phù hợp giữa CV ứng viên và Job Description (JD).
+Bạn là một chuyên gia tuyển dụng công nghệ và Technical Interviewer. 
+Nhiệm vụ của bạn là phân tích MỨC ĐỘ PHÙ HỢP giữa CV ứng viên và Job Description (JD).
+Đặc biệt, dựa trên những KIẾN THỨC BỊ THIẾU (Skill gaps), hãy sinh ra danh sách các câu hỏi phỏng vấn kỹ thuật để ứng viên có thể chuẩn bị tốt nhất.
 
 YÊU CẦU QUAN TRỌNG:
 - PHẢN HỒI HOÀN TOÀN BẰNG TIẾNG VIỆT.
-- Phân tích CHÍNH XÁC từng skill/yêu cầu trong JD.
-- Đánh giá khách quan dựa trên BẰNG CHỨNG trong CV.
+- Phân tích CHÍNH XÁC từng skill/yêu cầu trong JD dựa trên BẰNG CHỨNG trong CV.
+- Sinh ra ĐÚNG 3-5 câu hỏi phỏng vấn sát với điểm yếu hoặc các công nghệ cốt lõi trong JD mà ứng viên chưa thể hiện rõ.
 
 Trả về JSON:
 {{
   "match_score": integer (0-100, mức độ phù hợp tổng thể),
-  "matched_skills": [string (liệt kê skills có trong CV khớp với JD)],
-  "missing_skills": [string (liệt kê skills JD yêu cầu nhưng CV thiếu)],
-  "bonus_skills": [string (liệt kê skills CV có nhưng JD không yêu cầu - giá trị gia tăng)],
+  "matched_skills": [string],
+  "missing_skills": [string],
+  "bonus_skills": [string],
   "role_alignment": string (nhận xét về mức độ phù hợp với vị trí),
   "experience_gap": string (nhận xét về khoảng cách kinh nghiệm),
-  "recommendation": string (khuyến nghị: "Rất phù hợp" / "Phù hợp" / "Cần cải thiện" / "Không phù hợp")
+  "recommendation": string ("Rất phù hợp" / "Phù hợp" / "Cần cải thiện" / "Không phù hợp"),
+  "interview_questions": [
+    {{
+      "question": string (Câu hỏi phỏng vấn),
+      "intent": string (Mục đích hỏi câu này),
+      "expected_answer": string (Gợi ý cách trả lời hoặc từ khóa cần có)
+    }}
+  ]
 }}
 """

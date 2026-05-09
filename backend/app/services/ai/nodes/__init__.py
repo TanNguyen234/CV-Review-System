@@ -12,5 +12,6 @@ from app.services.ai.nodes.evaluators import (
 )
 from app.services.ai.nodes.validator import validator_node
 from app.services.ai.nodes.jd_analyzer import jd_analyzer_node
+from app.services.ai.nodes.project_evaluator import project_evaluator_node
 from app.services.ai.nodes.meta_evaluator import meta_evaluator_node
 from app.services.ai.nodes.output_generator import output_generator_node

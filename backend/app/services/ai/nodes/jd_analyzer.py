@@ -20,6 +20,12 @@ from app.services.ai.prompts.evaluator_prompts import JD_ANALYSIS_PROMPT
 from app.core.logging_config import pipeline_logger
 
 
+class InterviewQuestionModel(BaseModel):
+    question: str = Field(description="Câu hỏi phỏng vấn")
+    intent: str = Field(description="Mục đích hỏi câu này")
+    expected_answer: str = Field(description="Gợi ý cách trả lời hoặc từ khóa cần có")
+
+
 class JDAnalysisResult(BaseModel):
     """Schema for JD matching results."""
 
@@ -43,6 +49,9 @@ class JDAnalysisResult(BaseModel):
     )
     recommendation: str = Field(
         description="Final recommendation: Rất phù hợp / Phù hợp / Cần cải thiện / Không phù hợp"
+    )
+    interview_questions: List[InterviewQuestionModel] = Field(
+        description="Tailored interview questions based on skill gaps"
     )
 
 
@@ -108,6 +117,7 @@ def jd_analyzer_node(state: AgentState) -> dict:
                 "role_alignment": result.role_alignment,
                 "experience_gap": result.experience_gap,
                 "recommendation": result.recommendation,
+                "interview_questions": [q.model_dump() for q in result.interview_questions]
             },
             "processing_metadata": {
                 "jd_analyzer_duration_ms": round(duration_ms, 2)
