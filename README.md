@@ -1,22 +1,22 @@
 # CV AI Evaluation System
 
 Hệ thống đánh giá CV full-stack chuyên nghiệp sử dụng pipeline AI đa tác tử trên LangGraph, FastAPI backend, và giao diện Web UI Glassmorphism hiện đại.
+
 Hệ thống tự động trích xuất PDF, profiling, làm giàu dữ liệu, đánh giá song song, kiểm tra nhất quán, và render báo cáo phân tích theo thời gian thực (Real-time SSE Streaming).
 
 ---
 
-## 🌟 Tính năng Mới & Nổi bật
+## 🌟 Tính năng Nổi bật
 
 | Tính năng | Mô tả |
 |:---|:---|
-| **Web UI Hiện đại** | Giao diện Glassmorphism tuyệt đẹp tại `/app`, tải lên CV và xem AI làm việc theo thời gian thực. |
-| **Real-time SSE Streaming** | Theo dõi trực tiếp tiến trình của các Agent trong LangGraph qua giao diện console và progress bar. |
-| **Anti-bot & Rate Limiting** | Giới hạn 5 lần đánh giá CV/ngày cho mỗi IP. Được lưu trữ an toàn bằng MongoDB. |
-| **AI Spam Validation** | Sử dụng LLM tốc độ cao (Gemini Flash) đọc nhanh trang 1 của PDF để xác định CV là thật hay file rác trước khi đưa vào luồng chính. |
-| **Lưu trữ Cloudinary & MongoDB** | Lưu trữ lịch sử đánh giá vào MongoDB (Async Motor) và tự động upload file lên Cloudinary. |
-| **Parallel Evaluation** | Phase 2, 3, 4 chạy đồng thời qua LangGraph fan-out/fan-in |
-| **Cross-phase Validation** | Validator phát hiện bất thường giữa các phase (điểm chênh lệch, perfect score, zero-with-high-confidence) |
-| **JD Matching** | So khớp CV với Job Description — skill gap analysis (matched / missing / bonus skills) |
+| **Web UI Hiện đại** | Giao diện Glassmorphism tuyệt đẹp tại `/app`, hỗ trợ theo dõi tiến trình Agent theo thời gian thực. |
+| **Hybrid LLM Support** | Hỗ trợ cả **Google Gemini** và **HuggingFace (Qwen)** thông qua Factory Pattern. Cấu hình linh hoạt qua biến môi trường. |
+| **Real-time Streaming** | Sử dụng Server-Sent Events (SSE) để truyền tải cập nhật từ LangGraph trực tiếp lên giao diện người dùng. |
+| **Security Layer** | Tích hợp Anti-bot (Rate Limit 5 yêu cầu/ngày) và AI Spam Validation để loại bỏ tệp rác ngay từ đầu phễu. |
+| **Lưu trữ Trực tiếp** | Toàn bộ dữ liệu CV (Base64) và kết quả phân tích được lưu trữ tập trung trong **MongoDB**, loại bỏ phụ thuộc vào các dịch vụ lưu trữ bên thứ ba như Cloudinary. |
+| **Parallel Evaluation** | Các pha đánh giá (Nền tảng, Chuyên môn, Dự án) chạy đồng thời để tối ưu tốc độ xử lý. |
+| **Pytest Suite** | Hệ thống kiểm thử tự động toàn diện bao gồm Unit Tests (Security) và Integration Tests (API Endpoints). |
 
 ---
 
@@ -24,7 +24,7 @@ Hệ thống tự động trích xuất PDF, profiling, làm giàu dữ liệu, 
 
 ### Backend Layer
 ```
-Client (Web UI) → POST /submit (Spam Check + Rate Limit) → Cloudinary + MongoDB
+Client (Web UI) → POST /submit (Spam Check + Rate Limit) → MongoDB (Base64 Storage)
 Client (Web UI) → GET /stream/{job_id} → SSE Streaming LangGraph Updates
 ```
 
@@ -36,12 +36,12 @@ pdf_processor → profiler → enrichment ─┬→ phase2_eval ─┐
 ```
 
 **6 giai đoạn AI:**
-1. **PDF Processing** — Trích xuất text từ PDF, chuẩn hóa, tách sections.
-2. **Profiler** — LLM xác định tên, level (Intern→Senior), sinh ra dynamic rubric cho các evaluator.
-3. **Enrichment** — RAG (Tavily search) lấy bối cảnh thị trường.
-4. **Parallel Evaluation** — 3 evaluator độc lập đánh giá Nền tảng (60đ), Chuyên môn (30đ), Kỹ năng bổ sung (10đ).
-5. **Validator** — Kiểm tra logic và sự nhất quán giữa 3 phase.
-6. **Meta Evaluator & Output** — Tổng hợp điểm số và tạo mã HTML báo cáo.
+1. **PDF Processing** — Trích xuất text, chuẩn hóa và tách phân đoạn CV.
+2. **Profiler** — Xác định level và sinh dynamic rubric cho các evaluator.
+3. **Enrichment** — RAG (Tavily search) lấy bối cảnh thị trường thực tế.
+4. **Parallel Evaluation** — 3 evaluator độc lập chạy song song đánh giá các khía cạnh khác nhau.
+5. **Validator** — Kiểm tra logic và sự nhất quán giữa các pha đánh giá.
+6. **Meta Evaluator & Output** — Tổng hợp dữ liệu và render báo cáo HTML/PDF.
 
 ---
 
@@ -50,113 +50,93 @@ pdf_processor → profiler → enrichment ─┬→ phase2_eval ─┐
 ```
 backend/
 ├── app/
-│   ├── main.py                          # FastAPI entry point, lifespan, mount UI
-│   ├── core/
-│   │   ├── config.py                    # Cấu hình Pydantic (Env vars)
-│   │   ├── database.py                  # Async MongoDB setup (Motor)
-│   │   └── logging_config.py            # Log pipeline
-│   ├── api/v1/jobs.py                   # API routes: Submit CV và SSE Stream
-│   ├── schemas/db.py                    # MongoDB Models (Pydantic)
+│   ├── api/v1/jobs.py       # API routes (Submit & SSE Stream)
+│   ├── core/                # Config, DB (Motor), Logging
 │   ├── services/
-│   │   ├── security.py                  # Anti-bot Rate Limiter & CV Spam Checker
-│   │   └── ai/                          # LangGraph đa tác tử
-│   ├── static/                          # CSS/JS cho giao diện Web (Glassmorphism)
-│   └── templates/                       # HTML (Jinja2) cho giao diện Web
+│   │   ├── security.py      # Rate Limiter & Spam Checker
+│   │   └── ai/              # LangGraph Orchestration & Nodes
+│   ├── schemas/db.py        # MongoDB Models (Pydantic)
+│   ├── static/ & templates/ # Giao diện Web (Glassmorphism)
+│   └── main.py              # FastAPI Entry Point
+├── tests/
+│   ├── integration/         # API Endpoint tests
+│   ├── unit/                # Security & Core logic tests
+│   └── conftest.py          # Pytest fixtures & mocks
 ├── requirements.txt
-├── data/
-└── docs/
+└── .env                     # Configuration
 ```
 
 ---
 
 ## 🚀 Công nghệ sử dụng
 
-| Layer | Stack |
-|:---|:---|
-| **Backend** | FastAPI, SSE-Starlette, Motor (MongoDB), Uvicorn |
-| **Frontend** | HTML5, Vanilla CSS (Glassmorphism), Vanilla JS (EventSource), html2pdf.js |
-| **AI Orchestration** | LangGraph, LangChain |
-| **LLM Models** | Google Gemini (`gemini-2.5-flash`), HuggingFace |
-| **Storage & DB** | MongoDB Atlas, Cloudinary |
-| **PDF Processing** | PyMuPDF4LLM |
+- **Framework**: FastAPI, LangGraph, LangChain.
+- **LLM**: Google Gemini (1.5/2.5 Flash), HuggingFace (Qwen 2.5).
+- **Database**: MongoDB Atlas (Async Motor).
+- **Processing**: PyMuPDF4LLM, Pydantic v2.
+- **Frontend**: Vanilla JS, Glassmorphism CSS.
+- **Testing**: Pytest, Pytest-asyncio, Mongomock.
 
 ---
 
-## ⚙️ Hướng dẫn Cài đặt & Chạy
+## ⚙️ Hướng dẫn Cài đặt
 
-### 1. Clone và cài dependencies
+### 1. Cài đặt Dependencies
 
 ```bash
-git clone <repo-url>
-cd CV-Review-System/backend
+cd backend
 pip install -r requirements.txt
 ```
 
-### 2. Cấu hình biến môi trường (`.env`)
+### 2. Cấu hình .env
 
-Tạo file `.env` ở thư mục gốc của project:
+Tạo file `.env` tại thư mục gốc:
 
 ```env
-# AI Models
+# AI Models (Chọn 1 hoặc dùng cả hai)
+USE_QWEN=true
+HF_TOKEN=your_huggingface_token
 GEMINI_API_KEY=your_gemini_key
-GEMINI_MODEL=gemini-2.5-flash
-AI_MODEL_FLASH=gemini-2.5-flash
 
-# RAG
+# RAG & Database
 TAVILY_API=your_tavily_key
+MONGO_URL=your_mongodb_connection_url
 
-# Database & Storage (Bắt buộc cho Web UI)
-MONGO_URL=mongodb+srv://<user>:<password>@cluster0.mongodb.net/?appName=Cluster0
-CLOUD_NAME=your_cloud_name
-CLOUD_KEY=your_cloud_key
-CLOUD_SECRET=your_cloud_secret
-
-# Server
+# Server Settings
 PORT=3002
 CORS_ORIGINS=["http://localhost:3000", "http://localhost:3002"]
-MAX_UPLOAD_SIZE_MB=10
 ```
 
-### 3. Chạy Server và Truy cập Web UI
+### 3. Chạy hệ thống
 
 ```bash
-# Set PYTHONPATH và chạy backend
+# Set PYTHONPATH
 $env:PYTHONPATH = "backend"
-python -m uvicorn app.main:app --reload --port 3002
+
+# Chạy server
+python backend/app/main.py
+```
+Truy cập: **[http://localhost:3002/app](http://localhost:3002/app)**
+
+---
+
+## 🧪 Kiểm thử (Testing)
+
+Hệ thống đi kèm bộ test tự động để đảm bảo độ tin cậy của API và logic bảo mật.
+
+```bash
+# Chạy toàn bộ test suite
+cd backend
+python -m pytest tests/ -v
 ```
 
-👉 Truy cập hệ thống tại: **[http://localhost:3002/app](http://localhost:3002/app)**
-
 ---
 
-## 📖 API Reference (Phiên bản mới)
+## 🛡️ Bảo mật & Hiệu năng
 
-### `POST /api/v1/jobs/submit`
-Gửi CV lên hệ thống, chạy spam check, giới hạn rate limit và trả về ID tiến trình.
-- **Form-data**: `cv_file` (PDF), `jd_text` (String)
-- **Response**: `{"job_id": "uuid...", "message": "Success"}`
-
-### `GET /api/v1/jobs/stream/{job_id}`
-Endpoint SSE (Server-Sent Events) để lắng nghe log LangGraph theo thời gian thực.
-- **Event**: `status` -> Chứa string log của từng node.
-- **Event**: `complete` -> Chứa JSON gồm mã `report_html` và điểm `scores`.
-
----
-
-## 🛡️ Hệ thống An toàn (Security Layer)
-1. **Rate Limiting**: IP của người dùng được lưu vào `rate_limits` collection trong MongoDB. Giới hạn **5 yêu cầu mỗi ngày**.
-2. **Spam Validation**: Mọi tệp tải lên sẽ bị trích xuất trang đầu tiên và đẩy qua LLM Gemini Flash. Hệ thống yêu cầu LLM phán đoán tính hợp lệ "IS_CV: YES/NO". Nếu bị gán cờ rác, tệp sẽ bị xóa ngay lập tức trước khi chạy LangGraph.
-
----
-
-## 🤝 Troubleshooting
-
-| Vấn đề | Nguyên nhân | Giải pháp |
-|:---|:---|:---|
-| `Cannot connect to MongoDB` | Lỗi URL hoặc IP chưa được whitelist | Kiểm tra `MONGO_URL` và Network Access trong MongoDB Atlas |
-| `Rate limit exceeded` | Gửi quá 5 lần 1 ngày | Đổi IP, đợi qua ngày mới, hoặc xóa document trong MongoDB |
-| `File rejected: Not a CV` | Tải nhầm tệp (ảnh, word, tệp rác) | Đảm bảo file upload có cấu trúc như một Resume thực tế |
-| Lỗi CSS/JS không load | Sai đường dẫn tĩnh | Chạy từ thư mục gốc, FastAPI đã mount thư mục `app/static/` |
+1. **Anti-bot**: Giới hạn **5 yêu cầu/ngày/IP** thông qua MongoDB tracking.
+2. **Zero-Trust AI**: Sử dụng Gemini Flash xác thực tệp upload có phải CV hay không trước khi tốn token chạy pipeline chính.
+3. **Storage Efficiency**: CV được lưu trực tiếp dưới dạng Base64 trong MongoDB, giảm độ trễ so với việc upload lên storage bên thứ ba.
 
 ---
 *Private project — all rights reserved.*

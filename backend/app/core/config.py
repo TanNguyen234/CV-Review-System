@@ -51,9 +51,6 @@ class Settings(BaseSettings):
 
     # --- Database & Storage ---
     mongo_url: str = Field(default="", alias="MONGO_URL")
-    cloud_name: str = Field(default="", alias="CLOUD_NAME")
-    cloud_key: str = Field(default="", alias="CLOUD_KEY")
-    cloud_secret: str = Field(default="", alias="CLOUD_SECRET")
 
     # --- Pipeline Tuning ---
     llm_temperature: float = Field(default=0.2, ge=0.0, le=1.0)

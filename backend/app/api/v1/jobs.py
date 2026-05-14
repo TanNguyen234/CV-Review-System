@@ -10,22 +10,12 @@ from app.services.ai.graph import cv_graph
 from app.services.ai.state import AgentState
 from app.core.config import settings
 from app.core.logging_config import set_correlation_id
-import cloudinary
-import cloudinary.uploader
 import logging
 
 logger = logging.getLogger(__name__)
 
 # Basic in-memory store for jobs
 jobs_store = {}
-
-# Configure Cloudinary
-if settings.cloud_name and settings.cloud_key and settings.cloud_secret:
-    cloudinary.config(
-        cloud_name=settings.cloud_name,
-        api_key=settings.cloud_key,
-        api_secret=settings.cloud_secret
-    )
 
 router = APIRouter()
 
