@@ -6,10 +6,10 @@ Uses Tavily API for lightweight RAG enrichment.
 import time
 from pydantic import BaseModel, Field
 from langchain_core.messages import SystemMessage, HumanMessage
-from app.services.ai.state import AgentState, MarketInsight
+from app.services.ai.state import AgentState
 from app.core.config import settings
 from app.core.logging_config import pipeline_logger
-from app.services.ai.helpers.llm_factory import get_llm, invoke_structured, LLMTransientError
+from app.services.ai.helpers.llm_factory import get_llm, invoke_structured
 
 class MarketInsightResult(BaseModel):
     salary_range: str = Field(description="Mức lương tham khảo tại THỊ TRƯỜNG VIỆT NAM, đơn vị VND, ví dụ: 8-15 triệu VND/tháng")

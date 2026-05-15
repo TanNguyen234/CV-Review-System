@@ -24,7 +24,6 @@ class Database:
                 cls.db = cls.client["CV-Review"]
             
             # Simple ping to verify connection
-            import asyncio
             # We use a future to run the ping in the background without blocking the lifespan start
             # but we log the result
             async def ping():

@@ -11,7 +11,6 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from typing import Optional
 import os
-import shutil
 import uuid
 import time
 

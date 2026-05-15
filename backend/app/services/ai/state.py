@@ -5,7 +5,7 @@ Uses Annotated reducers for parallel fan-in support.
 """
 
 import operator
-from typing import TypedDict, Sequence, Dict, List, Annotated, Optional, Any, Union
+from typing import TypedDict, Sequence, Dict, List, Annotated, Optional, Any
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 

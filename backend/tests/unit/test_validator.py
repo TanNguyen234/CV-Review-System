@@ -3,7 +3,6 @@ Unit Tests for Validator Node.
 Tests cross-phase consistency checking and anomaly detection.
 """
 
-import pytest
 import sys
 import os
 

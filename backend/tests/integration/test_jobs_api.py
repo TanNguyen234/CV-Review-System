@@ -106,8 +106,6 @@ def test_download_report_not_found(client):
         mock_col.find_one.return_value = None
         mock_db_instance.__getitem__.return_value = mock_col
         
-        # Replace the fixture's effect temporarily
-        original_db = client.app.state # not exactly right, but we patched db_manager.db
         # We can just override db_manager.db inside the test
         from app.core.database import db_manager
         db_manager.db = mock_db_instance

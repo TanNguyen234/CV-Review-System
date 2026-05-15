@@ -1,4 +1,3 @@
-import os
 from datetime import datetime
 from fastapi import HTTPException
 from app.core.database import db_manager

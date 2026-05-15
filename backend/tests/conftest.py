@@ -7,7 +7,6 @@ import os
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from fastapi.testclient import TestClient
-import mongomock
 
 # Ensure backend is importable
 sys.path.insert(
@@ -25,8 +24,8 @@ if os.path.exists(env_path):
     load_dotenv(dotenv_path=env_path)
 
 # Import app after loading env vars
-from app.main import app
-from app.core.database import db_manager
+from app.main import app  # noqa: E402
+from app.core.database import db_manager  # noqa: E402
 
 @pytest.fixture
 def client():

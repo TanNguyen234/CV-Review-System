@@ -1,14 +1,12 @@
 import os
 import uuid
-import time
 import json
 from datetime import datetime
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request, Response
 from sse_starlette.sse import EventSourceResponse
 from app.services.security import check_rate_limit, validate_cv_spam
 from app.services.ai.graph import cv_graph
 from app.services.ai.state import AgentState
-from app.core.config import settings
 from app.core.logging_config import set_correlation_id
 import logging
 
@@ -225,8 +223,6 @@ async def stream_job(job_id: str):
 
     return EventSourceResponse(event_generator())
 
-
-from fastapi.responses import Response
 
 @router.get("/download/{job_id}")
 async def download_report(job_id: str):

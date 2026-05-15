@@ -114,7 +114,6 @@ def validator_node(state: AgentState) -> dict:
     pipeline_logger.node_start("validator")
 
     scores = state.get("scores", {})
-    confidence_scores = state.get("confidence_scores", {})
 
     # Detect anomalies
     anomalies = _detect_anomalies(scores)

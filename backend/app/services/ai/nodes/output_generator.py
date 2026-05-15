@@ -142,9 +142,6 @@ def generate_html(state: AgentState) -> str:
     p4 = scores.get("PHASE4", {})
     project_eval = scores.get("PROJECT_EVAL", {})
 
-    # Processing metadata
-    metadata = state.get("processing_metadata", {})
-    model_used = metadata.get("model_used", "AI Engine")
 
     # Dynamic date
     now = datetime.now(timezone.utc)

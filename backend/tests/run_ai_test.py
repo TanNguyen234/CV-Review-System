@@ -26,8 +26,8 @@ project_root = os.path.dirname(
 env_path = os.path.join(project_root, ".env")
 load_dotenv(dotenv_path=env_path)
 
-from app.services.ai.graph import cv_graph
-from app.core.logging_config import set_correlation_id
+from app.services.ai.graph import cv_graph  # noqa: E402
+from app.core.logging_config import set_correlation_id  # noqa: E402
 
 
 def _confidence_emoji(conf: int) -> str:
@@ -180,7 +180,7 @@ def run_refinement_test():
     print("=" * 50)
     print(f"[*] Target CV: {os.path.basename(pdf_path)}")
     print(f"[*] Correlation ID: {correlation_id}")
-    print(f"[*] Features: Parallel Eval | Confidence | Validation")
+    print("[*] Features: Parallel Eval | Confidence | Validation")
     print("-" * 50)
 
     initial_state = {
