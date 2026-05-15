@@ -1,77 +1,77 @@
 # CV AI Evaluation System
 
-Hệ thống đánh giá CV full-stack chuyên nghiệp sử dụng pipeline AI đa tác tử trên LangGraph, FastAPI backend, và giao diện Web UI Glassmorphism hiện đại.
+A professional full-stack CV evaluation system using a multi-agent AI pipeline on LangGraph, FastAPI backend, and a modern Glassmorphism Web UI.
 
-Hệ thống tự động trích xuất PDF, profiling, làm giàu dữ liệu, đánh giá song song, kiểm tra nhất quán, và render báo cáo phân tích theo thời gian thực (Real-time SSE Streaming).
+The system automatically extracts content from PDF files, performs candidate profiling, data enrichment, parallel professional assessments, consistency checks, and renders detailed analysis reports in real-time via Server-Sent Events (SSE) streaming.
 
 ---
 
-## 🌟 Tính năng Nổi bật
+## Key Features
 
-| Tính năng | Mô tả |
+| Feature | Description |
 |:---|:---|
-| **Web UI Hiện đại** | Giao diện Glassmorphism tuyệt đẹp tại `/app`, hỗ trợ theo dõi tiến trình Agent theo thời gian thực. |
-| **Hybrid LLM Support** | Hỗ trợ cả **Google Gemini** và **HuggingFace (Qwen)** thông qua Factory Pattern. Cấu hình linh hoạt qua biến môi trường. |
-| **Real-time Streaming** | Sử dụng Server-Sent Events (SSE) để truyền tải cập nhật từ LangGraph trực tiếp lên giao diện người dùng. |
-| **Security Layer** | Tích hợp Anti-bot (Rate Limit 5 yêu cầu/ngày) và AI Spam Validation để loại bỏ tệp rác ngay từ đầu phễu. |
-| **Lưu trữ Trực tiếp** | Toàn bộ dữ liệu CV (Base64) và kết quả phân tích được lưu trữ tập trung trong **MongoDB**, loại bỏ phụ thuộc vào các dịch vụ lưu trữ bên thứ ba như Cloudinary. |
-| **Parallel Evaluation** | Các pha đánh giá (Nền tảng, Chuyên môn, Dự án) chạy đồng thời để tối ưu tốc độ xử lý. |
-| **Pytest Suite** | Hệ thống kiểm thử tự động toàn diện bao gồm Unit Tests (Security) và Integration Tests (API Endpoints). |
+| **Modern Web UI** | Sleek Glassmorphism interface at `/app`, supporting real-time agent progress tracking. |
+| **Hybrid LLM Support** | Flexible integration of **Google Gemini** and **HuggingFace (Qwen)** via Factory Pattern. Easily configurable via environment variables. |
+| **Real-time Streaming** | Uses Server-Sent Events (SSE) to stream live updates from LangGraph directly to the user interface. |
+| **Smart Security Layer** | Integrated anti-bot mechanism (5 requests/day limit) and AI Spam Validation to filter invalid files early in the funnel. |
+| **Optimized Storage** | All CV data (Base64) and analysis results are stored centrally in **MongoDB**, removing dependencies on third-party storage services. |
+| **Parallel Evaluation** | Assessment phases (Foundational, Professional, Project) run concurrently to optimize processing speed. |
+| **Comprehensive Test Suite** | Includes Unit Tests for security logic and Integration Tests for API Endpoints. |
 
 ---
 
-## 🏗️ Kiến trúc Pipeline & Hệ thống
+## System Architecture & Pipeline
 
-### Backend Layer
+### Backend Workflow
 ```
-Client (Web UI) → POST /submit (Spam Check + Rate Limit) → MongoDB (Base64 Storage)
-Client (Web UI) → GET /stream/{job_id} → SSE Streaming LangGraph Updates
-```
-
-### AI Agent Pipeline
-```
-pdf_processor → profiler → enrichment ─┬→ phase2_eval ─┐
-                                        ├→ phase3_eval ─┤→ validator → [jd_analyzer?] → meta_evaluator → output
-                                        └→ phase4_eval ─┘
+Client (Web UI) → POST /api/v1/jobs/submit (Spam Check + Rate Limit) → MongoDB (Base64 Storage)
+Client (Web UI) → GET /api/v1/jobs/stream/{job_id} → SSE Streaming LangGraph Updates
 ```
 
-**6 giai đoạn AI:**
-1. **PDF Processing** — Trích xuất text, chuẩn hóa và tách phân đoạn CV.
-2. **Profiler** — Xác định level và sinh dynamic rubric cho các evaluator.
-3. **Enrichment** — RAG (Tavily search) lấy bối cảnh thị trường thực tế.
-4. **Parallel Evaluation** — 3 evaluator độc lập chạy song song đánh giá các khía cạnh khác nhau.
-5. **Validator** — Kiểm tra logic và sự nhất quán giữa các pha đánh giá.
-6. **Meta Evaluator & Output** — Tổng hợp dữ liệu và render báo cáo HTML/PDF.
+### AI Agent Pipeline (LangGraph)
+```
+pdf_processor → profiler → enrichment ─┬→ phase2_eval (Foundational) ─┐
+                                         ├→ phase3_eval (Professional) ─┤→ validator → meta_evaluator → output
+                                         └→ phase4_eval (Project-based) ─┘
+```
+
+**6 AI Processing Phases:**
+1. **PDF Processing**: Text extraction, normalization, and CV segmenting.
+2. **Profiler**: Determines seniority level and generates a dynamic evaluation rubric.
+3. **Enrichment**: Uses RAG (Tavily search) to fetch real-world market context.
+4. **Parallel Evaluation**: 3 independent agents concurrently evaluate different candidate aspects.
+5. **Validator**: Checks logic and consistency across evaluation results.
+6. **Meta Evaluator & Output**: Aggregates final data and renders an in-depth report.
 
 ---
 
-## 📂 Cấu trúc dự án
+## Directory Structure
 
 ```
 backend/
 ├── app/
-│   ├── api/v1/jobs.py       # API routes (Submit & SSE Stream)
-│   ├── core/                # Config, DB (Motor), Logging
+│   ├── api/v1/jobs.py       # Job management & SSE Stream API
+│   ├── core/                # Configuration, DB connection (Motor), Logging
 │   ├── services/
-│   │   ├── security.py      # Rate Limiter & Spam Checker
-│   │   └── ai/              # LangGraph Orchestration & Nodes
+│   │   ├── security.py      # Spam filter & Rate Limiter
+│   │   └── ai/              # LangGraph orchestration & Nodes
 │   ├── schemas/db.py        # MongoDB Models (Pydantic)
-│   ├── static/ & templates/ # Giao diện Web (Glassmorphism)
-│   └── main.py              # FastAPI Entry Point
+│   ├── static/ & templates/ # Web UI assets (index.html, CSS)
+│   └── main.py              # FastAPI entry point
 ├── tests/
-│   ├── integration/         # API Endpoint tests
-│   ├── unit/                # Security & Core logic tests
-│   └── conftest.py          # Pytest fixtures & mocks
-├── requirements.txt
-└── .env                     # Configuration
+│   ├── integration/         # API integration tests
+│   ├── unit/                # Security and core logic unit tests
+│   └── conftest.py          # Pytest configuration & Mocks
+├── requirements.txt         # Python dependencies
+└── .env                     # Environment variables (Manual setup required)
 ```
 
 ---
 
-## 🚀 Công nghệ sử dụng
+## Technology Stack
 
-- **Framework**: FastAPI, LangGraph, LangChain.
-- **LLM**: Google Gemini (1.5/2.5 Flash), HuggingFace (Qwen 2.5).
+- **Backend Framework**: FastAPI, LangGraph, LangChain.
+- **LLM Models**: Google Gemini (1.5/2.5 Flash), HuggingFace (Qwen 2.5).
 - **Database**: MongoDB Atlas (Async Motor).
 - **Processing**: PyMuPDF4LLM, Pydantic v2.
 - **Frontend**: Vanilla JS, Glassmorphism CSS.
@@ -79,21 +79,21 @@ backend/
 
 ---
 
-## ⚙️ Hướng dẫn Cài đặt
+## Setup Instructions
 
-### 1. Cài đặt Dependencies
+### 1. Install Dependencies
 
 ```bash
 cd backend
 pip install -r requirements.txt
 ```
 
-### 2. Cấu hình .env
+### 2. Environment Configuration (.env)
 
-Tạo file `.env` tại thư mục gốc:
+Create a `.env` file in the `backend/` directory or project root with the following:
 
 ```env
-# AI Models (Chọn 1 hoặc dùng cả hai)
+# AI Models
 USE_QWEN=true
 HF_TOKEN=your_huggingface_token
 GEMINI_API_KEY=your_gemini_key
@@ -107,36 +107,35 @@ PORT=3002
 CORS_ORIGINS=["http://localhost:3000", "http://localhost:3002"]
 ```
 
-### 3. Chạy hệ thống
+### 3. Run the System
 
 ```bash
-# Set PYTHONPATH
+# Set PYTHONPATH (Windows PowerShell)
 $env:PYTHONPATH = "backend"
 
-# Chạy server
+# Run server with Uvicorn
 python backend/app/main.py
 ```
-Truy cập: **[http://localhost:3002/app](http://localhost:3002/app)**
+Access the UI at: **[http://localhost:3002/app](http://localhost:3002/app)**
 
 ---
 
-## 🧪 Kiểm thử (Testing)
+## Testing
 
-Hệ thống đi kèm bộ test tự động để đảm bảo độ tin cậy của API và logic bảo mật.
+The system includes an automated test suite to ensure API reliability and security logic.
 
 ```bash
-# Chạy toàn bộ test suite
 cd backend
 python -m pytest tests/ -v
 ```
 
 ---
 
-## 🛡️ Bảo mật & Hiệu năng
+## Security & Performance
 
-1. **Anti-bot**: Giới hạn **5 yêu cầu/ngày/IP** thông qua MongoDB tracking.
-2. **Zero-Trust AI**: Sử dụng Gemini Flash xác thực tệp upload có phải CV hay không trước khi tốn token chạy pipeline chính.
-3. **Storage Efficiency**: CV được lưu trực tiếp dưới dạng Base64 trong MongoDB, giảm độ trễ so với việc upload lên storage bên thứ ba.
+1. **Anti-bot**: Limits to **5 requests/day per IP** via MongoDB tracking.
+2. **AI Validation**: Uses Gemini Flash to verify uploaded files are actually CVs before running the full pipeline, saving tokens/costs.
+3. **Storage Efficiency**: CVs are stored directly as Base64 in MongoDB, reducing latency and reliance on external file storage services.
 
 ---
 *Private project — all rights reserved.*
