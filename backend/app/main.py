@@ -46,10 +46,15 @@ app.add_middleware(
 )
 
 # Setup Static and Templates
-os.makedirs("app/static", exist_ok=True)
-os.makedirs("app/templates", exist_ok=True)
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-templates = Jinja2Templates(directory="app/templates")
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+static_dir = os.path.join(CURRENT_DIR, "static")
+templates_dir = os.path.join(CURRENT_DIR, "templates")
+
+os.makedirs(static_dir, exist_ok=True)
+os.makedirs(templates_dir, exist_ok=True)
+
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+templates = Jinja2Templates(directory=templates_dir)
 
 # Include the new Jobs Router for Web App Streaming
 app.include_router(jobs_router, prefix="/api/v1/jobs", tags=["jobs"])
@@ -103,7 +108,8 @@ async def evaluate_cv(
         )
 
     temp_id = str(uuid.uuid4())
-    temp_dir = os.path.join("data", "temp")
+    backend_root = os.path.dirname(CURRENT_DIR)
+    temp_dir = os.path.join(backend_root, "data", "temp")
     os.makedirs(temp_dir, exist_ok=True)
 
     safe_filename = f"{temp_id}.pdf"
