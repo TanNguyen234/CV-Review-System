@@ -59,7 +59,7 @@ async def web_app(request: Request):
     """
     Serve the frontend interface.
     """
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html")
 
 @app.get("/")
 async def root():
