@@ -5,7 +5,6 @@ Includes confidence scoring and enrichment context injection.
 """
 
 import time
-from typing import Dict, Any
 
 from pydantic import BaseModel, Field
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -25,23 +24,60 @@ from app.services.ai.prompts.evaluator_prompts import (
 from app.core.logging_config import pipeline_logger
 
 
-class PhaseResult(BaseModel):
-    """Schema for Phase evaluation results with confidence scoring."""
+class SubscoreDetails(BaseModel):
+    score: int
+    feedback: str
+    confidence: int
 
+class FormatAtsDetails(SubscoreDetails):
+    examples: list[str] = []
+
+class ContentQualityDetails(SubscoreDetails):
+    suggestions: list[str] = []
+
+class Phase2Details(BaseModel):
+    format_ats: FormatAtsDetails
+    professional_foundation: SubscoreDetails
+    content_quality: ContentQualityDetails
+
+class Phase2Result(BaseModel):
     score: int = Field(description="The total score for this phase")
-    confidence: int = Field(
-        default=3,
-        description="Confidence level 1-5 for this evaluation",
-        ge=1,
-        le=5,
-    )
-    reasoning: str = Field(
-        default="",
-        description="Chain-of-thought reasoning for the score",
-    )
-    details: Dict[str, Any] = Field(
-        description="Breakdown of sub-scores and feedback"
-    )
+    confidence: int = Field(default=3, description="Confidence level 1-5 for this evaluation", ge=1, le=5)
+    reasoning: str = Field(default="", description="Chain-of-thought reasoning for the score")
+    details: Phase2Details = Field(description="Breakdown of sub-scores and feedback")
+    feedback: str = Field(description="Overall feedback for this phase")
+
+class ExperienceDetails(SubscoreDetails):
+    improved_bullets: list[str] = []
+
+class TechnicalProofDetails(SubscoreDetails):
+    relevance_score: int = 0
+
+class ProjectsDetails(SubscoreDetails):
+    era_evaluation: str = ""
+
+class Phase3Details(BaseModel):
+    experience: ExperienceDetails
+    technical_proof: TechnicalProofDetails
+    projects: ProjectsDetails
+
+class Phase3Result(BaseModel):
+    score: int = Field(description="The total score for this phase")
+    confidence: int = Field(default=3, description="Confidence level 1-5 for this evaluation", ge=1, le=5)
+    reasoning: str = Field(default="", description="Chain-of-thought reasoning for the score")
+    details: Phase3Details = Field(description="Breakdown of sub-scores and feedback")
+    feedback: str = Field(description="Overall feedback for this phase")
+
+class Phase4Details(BaseModel):
+    leadership: SubscoreDetails
+    languages: SubscoreDetails
+    awards: SubscoreDetails
+
+class Phase4Result(BaseModel):
+    score: int = Field(description="The total score for this phase")
+    confidence: int = Field(default=3, description="Confidence level 1-5 for this evaluation", ge=1, le=5)
+    reasoning: str = Field(default="", description="Chain-of-thought reasoning for the score")
+    details: Phase4Details = Field(description="Breakdown of sub-scores and feedback")
     feedback: str = Field(description="Overall feedback for this phase")
 
 
@@ -80,6 +116,7 @@ def _evaluate_phase(
     phase_name: str,
     prompt_template: str,
     input_text: str,
+    pydantic_class: type[BaseModel],
     inject_enrichment: bool = False,
 ) -> dict:
     """
@@ -116,7 +153,7 @@ def _evaluate_phase(
         ]
 
         result = invoke_structured(
-            llm, PhaseResult, messages, node_name=phase_name
+            llm, pydantic_class, messages, node_name=phase_name
         )
 
         duration_ms = (time.time() - start) * 1000
@@ -130,7 +167,7 @@ def _evaluate_phase(
             "scores": {
                 phase_name: {
                     "score": result.score,
-                    "details": result.details,
+                    "details": result.details.model_dump() if hasattr(result.details, "model_dump") else result.details,
                     "feedback": result.feedback,
                     "confidence": result.confidence,
                     "reasoning": result.reasoning,
@@ -303,6 +340,7 @@ def phase2_evaluator_node(state: AgentState) -> dict:
         "PHASE2",
         PHASE2_PROMPT,
         state.get("cleaned_text", ""),
+        pydantic_class=Phase2Result,
     )
 
 
@@ -315,6 +353,7 @@ def phase3_evaluator_node(state: AgentState) -> dict:
         "PHASE3",
         PHASE3_PROMPT,
         context,
+        pydantic_class=Phase3Result,
         inject_enrichment=True,  # Feed RAG results to Phase 3
     )
 
@@ -326,4 +365,5 @@ def phase4_evaluator_node(state: AgentState) -> dict:
         "PHASE4",
         PHASE4_PROMPT,
         state.get("cleaned_text", ""),
+        pydantic_class=Phase4Result,
     )

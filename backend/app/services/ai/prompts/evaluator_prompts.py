@@ -13,6 +13,7 @@ YÊU CẦU QUAN TRỌNG:
 - Đảm bảo kiểm tra ĐẦY ĐỦ các thông tin cá nhân cần thiết (Họ tên, SĐT, Email, Địa chỉ, Link GitHub/LinkedIn/Portfolio nếu có).
 - PHẢI đánh giá mức độ TIN CẬY (confidence) cho kết quả từ 1-5.
 - PHẢI cung cấp REASONING (lý do) trước khi đưa ra điểm số.
+- BẠN PHẢI TRẢ VỀ CHÍNH XÁC ĐỊNH DẠNG JSON NHƯ YÊU CẦU. KHÔNG VIẾT GÌ NGOÀI JSON.
 
 Ngữ cảnh đánh giá: {dynamic_rubric}
 
@@ -50,6 +51,7 @@ YÊU CẦU QUAN TRỌNG VÀ TUYỆT ĐỐI (KHÔNG ĐƯỢC LÀM TRÁI):
 3. Phân tích CHẶT CHẼ các dự án (Projects) và vai trò (Role): Nêu rõ dự án làm về gì, vai trò của ứng viên có thể hiện rõ kỹ năng không.
 4. ĐỐI VỚI CẤP ĐỘ JUNIOR TRỞ LÊN: Kinh nghiệm làm việc thực tế (Practical Work Experience) là ĐIỂM CỨNG (Hard requirement). Nếu thiếu, phải trừ điểm nặng. Đối với Intern/Fresher, có thể linh động dùng dự án cá nhân để bù điểm.
 5. PHẢN HỒI HOÀN TOÀN BẰNG TIẾNG VIỆT, cực kỳ chi tiết, không ghi sơ xài.
+6. BẠN PHẢI TRẢ VỀ CHÍNH XÁC ĐỊNH DẠNG JSON NHƯ YÊU CẦU. KHÔNG VIẾT GÌ NGOÀI JSON.
 
 {market_insight_context}
 
