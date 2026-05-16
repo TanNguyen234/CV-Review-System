@@ -28,9 +28,9 @@ COPY backend/ ./backend/
 RUN mkdir -p data/temp
 
 # Expose the port the app runs on
-EXPOSE 3002
+EXPOSE 7860
 
 # Command to run the application
 # We run from /app/backend to ensure relative paths for templates/static work as expected
 WORKDIR /app/backend
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3002"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
