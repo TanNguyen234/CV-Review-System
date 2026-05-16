@@ -153,8 +153,25 @@ def meta_evaluator_node(state: AgentState) -> dict:
                 "META": {
                     "final_score": total,
                     "confidence": 1,
+                    "score_adjustments": {},
                     "error": f"Lỗi tổng hợp: {str(e)}",
                     "summary": "Đánh giá tổng hợp thất bại. Điểm được tính cơ học từ các phase.",
+                    "detailed_analysis": (
+                        "Hệ thống không thể hoàn thành đánh giá tổng hợp do lỗi kỹ thuật. "
+                        f"Điểm hiện tại ({total}/100) được tính tự động từ tổng các giai đoạn. "
+                        "Vui lòng thử đánh giá lại để nhận phân tích chi tiết đầy đủ."
+                    ),
+                    "strengths": [
+                        "Chưa thể phân tích chi tiết do lỗi hệ thống — vui lòng thử lại"
+                    ],
+                    "priority_actions": [
+                        "Thử đánh giá lại để nhận phân tích đầy đủ"
+                    ],
+                    "general_advice": [
+                        "Hệ thống gặp sự cố tạm thời — kết quả sẽ chính xác hơn khi thử lại"
+                    ],
+                    "industry_standards": "Chưa thể phân tích do lỗi hệ thống.",
+                    "industry_keywords": [],
                 }
             },
             "errors": [f"Meta Evaluator error: {str(e)}"],
