@@ -95,8 +95,37 @@ def invoke_structured(
             result_dict = parser.invoke(result_msg)
             result = pydantic_class(**result_dict)
         else:
-            structured_llm = llm.with_structured_output(pydantic_class)
-            result = structured_llm.invoke(messages)
+            # Try structured output first (Gemini function calling)
+            try:
+                structured_llm = llm.with_structured_output(pydantic_class)
+                result = structured_llm.invoke(messages)
+            except Exception as struct_err:
+                # Fallback: ask for JSON directly and parse
+                pipeline_logger.node_error(
+                    node_name,
+                    f"Structured output failed, trying JSON fallback: {struct_err}",
+                    retryable=True,
+                )
+                parser = JsonOutputParser(pydantic_object=pydantic_class)
+                format_instructions = parser.get_format_instructions()
+
+                fallback_messages = copy.deepcopy(messages)
+                for msg in fallback_messages:
+                    if isinstance(msg, SystemMessage):
+                        msg.content += (
+                            f"\n\nCRITICAL: You MUST output ONLY valid JSON. "
+                            f"{format_instructions}"
+                        )
+                        break
+
+                result_msg = llm.invoke(fallback_messages)
+                result_dict = parser.invoke(result_msg)
+                result = pydantic_class(**result_dict)
+
+            if result is None:
+                raise LLMPermanentError(
+                    f"LLM returned None for structured output in {node_name}"
+                )
 
         duration_ms = (time.time() - start) * 1000
         pipeline_logger.node_complete(
@@ -109,6 +138,7 @@ def invoke_structured(
         raise  # Already classified, re-raise as-is
     except Exception as e:
         _classify_and_raise(e, node_name)
+
 
 
 def get_llm(temperature: float | None = None):
