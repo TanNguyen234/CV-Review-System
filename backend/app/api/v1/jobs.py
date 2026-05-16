@@ -176,30 +176,46 @@ async def stream_job(job_id: str, lang: str = "vi"):
             }
             
             # Use LangGraph stream
+            accumulated_state = dict(initial_state)
             async for s in cv_graph.astream(initial_state, stream_mode="updates"):
                 # s is a dict with node_name -> state_updates
                 for node_name, updates in s.items():
                     logger.info(f"Completed node: {node_name}")
                     # Send status update
                     yield {"event": "status", "data": f"Finished: {node_name}"}
+
+                    # Merge updates into accumulated state
+                    for key, val in updates.items():
+                        if isinstance(val, dict) and isinstance(accumulated_state.get(key), dict):
+                            accumulated_state[key] = {**accumulated_state[key], **val}
+                        else:
+                            accumulated_state[key] = val
                     
                     # If output generator is done, we have the final HTML
                     if node_name == "output_generator" and "report_html" in updates:
                         # Extract final score if available
-                        final_score = updates.get("scores", {}).get("META", {}).get("final_score")
+                        final_score = accumulated_state.get("scores", {}).get("META", {}).get("final_score")
                         
                         # We send a special completion event with the HTML
                         final_data = {
                             "report_html": updates["report_html"],
-                            "scores": updates.get("scores", {})
+                            "scores": accumulated_state.get("scores", {})
+                        }
+
+                        # Build pipeline_state for re-rendering (only serializable fields)
+                        pipeline_state = {
+                            "scores": accumulated_state.get("scores", {}),
+                            "candidate_name": accumulated_state.get("candidate_name", "N/A"),
+                            "candidate_level": accumulated_state.get("candidate_level", "N/A"),
+                            "industry": accumulated_state.get("industry", "N/A"),
+                            "jd_analysis": accumulated_state.get("jd_analysis"),
+                            "validation_result": accumulated_state.get("validation_result"),
+                            "market_insight": accumulated_state.get("market_insight"),
                         }
                         
-                        # Update DB with results
+                        # Update DB with results + pipeline state
                         from app.core.database import db_manager
                         if db_manager.db is not None:
-                            # Try to get cleaned text from the latest state if possible. 
-                            # updates might not contain it, but we'll try. 
-                            # Or we can just leave the raw_text as is.
                             await db_manager.db["cv_records"].update_one(
                                 {"job_id": job_id},
                                 {
@@ -207,6 +223,7 @@ async def stream_job(job_id: str, lang: str = "vi"):
                                         "status": "completed", 
                                         "report_html": updates["report_html"],
                                         "final_score": final_score,
+                                        "pipeline_state": pipeline_state,
                                         "updated_at": datetime.utcnow()
                                     }
                                 }
