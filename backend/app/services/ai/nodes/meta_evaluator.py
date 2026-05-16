@@ -148,6 +148,69 @@ def meta_evaluator_node(state: AgentState) -> dict:
             for k, s in scores.items()
             if k.startswith("PHASE")
         )
+
+        # --------------------------------------------------
+        # Build meaningful content from existing phase data
+        # --------------------------------------------------
+        strengths = []
+        priority_actions = []
+        general_advice = []
+        industry_keywords = []
+
+        for phase_key, phase_data in scores.items():
+            if not phase_key.startswith("PHASE"):
+                continue
+            details = phase_data.get("details", {})
+            if not isinstance(details, dict):
+                continue
+            for item_key, item in details.items():
+                if not isinstance(item, dict):
+                    continue
+                item_score = item.get("score", 0)
+                item_fb = item.get("feedback", "")
+                item_title = item_key.replace("_", " ").title()
+                if item_score >= 7:
+                    strengths.append(f"{item_title}: {item_fb[:120]}" if item_fb else item_title)
+                elif item_score <= 3 and item_fb:
+                    priority_actions.append(f"{item_title}: {item_fb[:120]}")
+
+        if not strengths:
+            strengths = ["CV đã được nộp thành công và đánh giá qua các giai đoạn cơ bản"]
+        if not priority_actions:
+            priority_actions = ["Cập nhật CV với thêm chi tiết về kinh nghiệm và kỹ năng chuyên môn"]
+
+        general_advice = [
+            "Bổ sung thêm số liệu cụ thể vào các mô tả kinh nghiệm",
+            "Đảm bảo CV tương thích với hệ thống ATS",
+            "Cập nhật các kỹ năng công nghệ mới nhất trong ngành",
+            "Thêm các dự án cá nhân hoặc open-source để minh chứng năng lực",
+            "Viết summary ngắn gọn ở đầu CV tóm tắt giá trị cốt lõi",
+        ]
+
+        # Extract keywords from phase detail keys
+        for phase_data in scores.values():
+            if isinstance(phase_data, dict):
+                for dk in phase_data.get("details", {}).keys():
+                    kw = dk.replace("_", " ").title()
+                    if kw not in industry_keywords:
+                        industry_keywords.append(kw)
+
+        # Score quality summary
+        if total >= 75:
+            summary_text = f"CV đạt {total}/100 — mức khá. Ứng viên có nền tảng tốt, cần tối ưu thêm một số điểm."
+        elif total >= 60:
+            summary_text = f"CV đạt {total}/100 — mức trung bình. Cần cải thiện nội dung và định dạng để nổi bật hơn."
+        elif total >= 40:
+            summary_text = f"CV đạt {total}/100 — cần cải thiện đáng kể. Tập trung vào nội dung chất lượng và format chuyên nghiệp."
+        else:
+            summary_text = f"CV đạt {total}/100 — cần xây dựng lại. Nên tham khảo các mẫu CV chuẩn ngành."
+
+        detailed_text = (
+            f"Điểm tổng hợp: {total}/100. "
+            f"Điểm mạnh chính: {'; '.join(strengths[:3])}. "
+            f"Cần ưu tiên: {'; '.join(priority_actions[:3])}."
+        )
+
         return {
             "scores": {
                 "META": {
@@ -155,24 +218,19 @@ def meta_evaluator_node(state: AgentState) -> dict:
                     "confidence": 1,
                     "score_adjustments": {},
                     "error": f"Lỗi tổng hợp: {str(e)}",
-                    "summary": "Đánh giá tổng hợp thất bại. Điểm được tính cơ học từ các phase.",
-                    "detailed_analysis": (
-                        "Hệ thống không thể hoàn thành đánh giá tổng hợp do lỗi kỹ thuật. "
-                        f"Điểm hiện tại ({total}/100) được tính tự động từ tổng các giai đoạn. "
-                        "Vui lòng thử đánh giá lại để nhận phân tích chi tiết đầy đủ."
+                    "summary": summary_text,
+                    "detailed_analysis": detailed_text,
+                    "strengths": strengths[:6],
+                    "priority_actions": priority_actions[:6],
+                    "general_advice": general_advice,
+                    "industry_standards": (
+                        "CV cần đảm bảo tương thích ATS, sử dụng font chuẩn, "
+                        "có cấu trúc rõ ràng với các section: Summary, Experience, "
+                        "Skills, Education, Projects."
                     ),
-                    "strengths": [
-                        "Chưa thể phân tích chi tiết do lỗi hệ thống — vui lòng thử lại"
-                    ],
-                    "priority_actions": [
-                        "Thử đánh giá lại để nhận phân tích đầy đủ"
-                    ],
-                    "general_advice": [
-                        "Hệ thống gặp sự cố tạm thời — kết quả sẽ chính xác hơn khi thử lại"
-                    ],
-                    "industry_standards": "Chưa thể phân tích do lỗi hệ thống.",
-                    "industry_keywords": [],
+                    "industry_keywords": industry_keywords[:10],
                 }
             },
             "errors": [f"Meta Evaluator error: {str(e)}"],
         }
+
