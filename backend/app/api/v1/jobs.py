@@ -21,7 +21,8 @@ router = APIRouter()
 async def submit_job(
     request: Request,
     cv_file: UploadFile = File(...),
-    jd_text: str = Form(default="")
+    jd_text: str = Form(default=""),
+    lang: str = Form(default="vi")
 ):
     """
     Step 1: Upload file, run anti-bot, validate spam, and return a job_id.
@@ -121,6 +122,7 @@ async def submit_job(
             "file_path": file_path,
             "filename": cv_file.filename,
             "jd_text": jd_text,
+            "lang": lang if lang in ("vi", "en") else "vi",
             "correlation_id": set_correlation_id()
         }
         
@@ -133,7 +135,7 @@ async def submit_job(
 
 
 @router.get("/stream/{job_id}")
-async def stream_job(job_id: str):
+async def stream_job(job_id: str, lang: str = "vi"):
     """
     Step 2: Stream the LangGraph execution using SSE.
     """
@@ -144,6 +146,7 @@ async def stream_job(job_id: str):
     file_path = job_info["file_path"]
     filename = job_info["filename"]
     jd_text = job_info["jd_text"]
+    job_lang = lang if lang in ("vi", "en") else job_info.get("lang", "vi")
     correlation_id = job_info["correlation_id"]
     
     async def event_generator():
@@ -161,6 +164,7 @@ async def stream_job(job_id: str):
                 "jd_text": jd_text,
                 "jd_analysis": None,
                 "validation_result": None,
+                "report_lang": job_lang,
                 "report_html": "",
                 "chatbot_summary": "",
                 "processing_metadata": {
@@ -224,22 +228,54 @@ async def stream_job(job_id: str):
     return EventSourceResponse(event_generator())
 
 
-@router.get("/download/{job_id}")
-async def download_report(job_id: str):
+@router.get("/report/{job_id}")
+async def get_report(job_id: str, lang: str = "vi"):
+    """Re-render a stored report in the requested language."""
     from app.core.database import db_manager
+    from app.services.ai.nodes.output_generator import generate_html
+
+    if db_manager.db is None:
+        raise HTTPException(status_code=500, detail="Database not connected")
+
+    record = await db_manager.db["cv_records"].find_one({"job_id": job_id})
+    if not record or not record.get("report_html"):
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    # If we have pipeline state stored, re-render. Otherwise return stored HTML.
+    pipeline_state = record.get("pipeline_state")
+    if pipeline_state and lang in ("vi", "en"):
+        html = generate_html(pipeline_state, lang=lang)
+        return {"report_html": html, "lang": lang}
+
+    # Fallback: return stored HTML as-is
+    return {"report_html": record["report_html"], "lang": "vi"}
+
+
+@router.get("/download/{job_id}")
+async def download_report(job_id: str, lang: str = "vi"):
+    from app.core.database import db_manager
+    from app.services.ai.nodes.output_generator import generate_html, TRANSLATIONS
     if db_manager.db is None:
         raise HTTPException(status_code=500, detail="Database not connected")
         
     record = await db_manager.db["cv_records"].find_one({"job_id": job_id})
     if not record or not record.get("report_html"):
         raise HTTPException(status_code=404, detail="Report not found or not ready")
-        
+
+    # Re-render in requested language if pipeline state is available
     report_html = record["report_html"]
+    pipeline_state = record.get("pipeline_state")
+    if pipeline_state and lang in ("vi", "en"):
+        report_html = generate_html(pipeline_state, lang=lang)
+
+    safe_lang = lang if lang in ("vi", "en") else "vi"
+    t = TRANSLATIONS.get(safe_lang, TRANSLATIONS["vi"])
+    page_header = t["page_header"]
     
-    # Wrap in modern template for WeasyPrint
+    # Wrap in modern template for print
     full_html = f"""
     <!DOCTYPE html>
-    <html lang="en">
+    <html lang="{safe_lang}">
     <head>
         <meta charset="UTF-8">
         <style>
@@ -253,7 +289,7 @@ async def download_report(job_id: str):
                     color: #64748b;
                 }}
                 @top-left {{
-                    content: "AI CV Analysis Report";
+                    content: "{page_header}";
                     font-family: 'Inter', sans-serif;
                     font-size: 9pt;
                     color: #94a3b8;
@@ -305,26 +341,8 @@ async def download_report(job_id: str):
                 margin-bottom: 20px;
                 page-break-inside: avoid;
             }}
-            ul, ol {{
-                padding-left: 20px;
-            }}
-            li {{
-                margin-bottom: 5px;
-            }}
-            .critical-issue {{
-                color: #b91c1c;
-                background-color: #fef2f2;
-                padding: 10px;
-                border-left: 4px solid #ef4444;
-                margin-bottom: 10px;
-            }}
-            .recommendation {{
-                color: #047857;
-                background-color: #ecfdf5;
-                padding: 10px;
-                border-left: 4px solid #10b981;
-                margin-bottom: 10px;
-            }}
+            ul, ol {{ padding-left: 20px; }}
+            li {{ margin-bottom: 5px; }}
             table {{
                 width: 100%;
                 border-collapse: collapse;
@@ -362,3 +380,4 @@ async def download_report(job_id: str):
         content=full_html,
         media_type="text/html"
     )
+

@@ -155,6 +155,7 @@ class AgentState(TypedDict, total=False):
     validation_result: Optional[ValidationResult]
 
     # --- Output ---
+    report_lang: str  # Language for report output: "vi" or "en"
     report_html: str
     chatbot_summary: str
 

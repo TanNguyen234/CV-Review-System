@@ -20,6 +20,11 @@
         <header>
             <h1>Hệ thống Phân tích CV AI <span class="badge">Pro</span></h1>
             <p>Tải CV của bạn lên để nhận phân tích chuyên sâu từ AI đa luồng.</p>
+            <div style="margin-top: 1rem; display: flex; justify-content: center;">
+                <button id="lang-toggle" class="btn-lang" title="Switch language">
+                    <span id="lang-label">🌐 EN</span>
+                </button>
+            </div>
         </header>
 
         <div class="glass-panel" id="upload-panel">
@@ -60,7 +65,12 @@
         <div class="glass-panel hidden" id="result-panel">
             <div class="result-header">
                 <h2>Phân tích Hoàn tất</h2>
-                <button class="btn-secondary" id="download-pdf-btn">Tải Báo Cáo PDF</button>
+                <div style="display:flex;gap:10px;align-items:center;">
+                    <button class="btn-lang" id="report-lang-toggle" title="Switch report language">
+                        <span id="report-lang-label">🌐 EN</span>
+                    </button>
+                    <button class="btn-secondary" id="download-pdf-btn">Tải Báo Cáo PDF</button>
+                </div>
             </div>
             <div id="report-content" class="report-container">
                 <!-- HTML Output goes here -->

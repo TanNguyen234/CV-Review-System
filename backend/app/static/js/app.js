@@ -17,6 +17,50 @@ document.addEventListener('DOMContentLoaded', () => {
     const restartBtn = document.getElementById('restart-btn');
     const downloadPdfBtn = document.getElementById('download-pdf-btn');
     
+    // Language toggle elements
+    const langToggle = document.getElementById('lang-toggle');
+    const langLabel = document.getElementById('lang-label');
+    const reportLangToggle = document.getElementById('report-lang-toggle');
+    const reportLangLabel = document.getElementById('report-lang-label');
+    
+    // Language state
+    let currentLang = 'vi';
+    
+    function updateLangButtons() {
+        const nextLang = currentLang === 'vi' ? 'EN' : 'VI';
+        if (langLabel) langLabel.textContent = `🌐 ${nextLang}`;
+        if (reportLangLabel) reportLangLabel.textContent = `🌐 ${nextLang}`;
+    }
+    
+    function toggleLang() {
+        currentLang = currentLang === 'vi' ? 'en' : 'vi';
+        updateLangButtons();
+    }
+    
+    if (langToggle) {
+        langToggle.addEventListener('click', toggleLang);
+    }
+    
+    if (reportLangToggle) {
+        reportLangToggle.addEventListener('click', async () => {
+            toggleLang();
+            // Re-render report in new language
+            if (currentJobId) {
+                try {
+                    const res = await fetch(`/api/v1/jobs/report/${currentJobId}?lang=${currentLang}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.report_html) {
+                            reportContent.innerHTML = data.report_html;
+                        }
+                    }
+                } catch (err) {
+                    console.error('Failed to switch report language:', err);
+                }
+            }
+        });
+    }
+    
     // File input change
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length > 0) {
@@ -57,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData();
         formData.append('cv_file', file);
         formData.append('jd_text', document.getElementById('jd-text').value);
+        formData.append('lang', currentLang);
         
         try {
             // Step 1: Submit Job
@@ -90,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function startStream(jobId) {
         currentJobId = jobId;
-        const eventSource = new EventSource(`/api/v1/jobs/stream/${jobId}`);
+        const eventSource = new EventSource(`/api/v1/jobs/stream/${jobId}?lang=${currentLang}`);
         let progress = 10;
         progressBar.style.width = `${progress}%`;
         
@@ -155,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // Trigger download from backend API using WeasyPrint
-        window.open(`/api/v1/jobs/download/${currentJobId}`, '_blank');
+        // Trigger download from backend API, pass current language
+        window.open(`/api/v1/jobs/download/${currentJobId}?lang=${currentLang}`, '_blank');
     });
 });
