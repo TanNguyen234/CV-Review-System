@@ -1,3 +1,12 @@
+---
+title: AI CV Reviewer
+emoji: 🤖
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+---
+
 # CV AI Evaluation System
 
 A professional full-stack CV evaluation system using a multi-agent AI pipeline on LangGraph, FastAPI backend, and a modern Glassmorphism Web UI.
