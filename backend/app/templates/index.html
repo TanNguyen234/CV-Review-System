@@ -18,8 +18,8 @@
 
     <main class="container">
         <header>
-            <h1>Hệ thống Phân tích CV AI <span class="badge">Pro</span></h1>
-            <p>Tải CV của bạn lên để nhận phân tích chuyên sâu từ AI đa luồng.</p>
+            <h1 data-i18n="title">Hệ thống Phân tích CV AI <span class="badge">Pro</span></h1>
+            <p data-i18n="subtitle">Tải CV của bạn lên để nhận phân tích chuyên sâu từ AI đa luồng.</p>
             <div style="margin-top: 1rem; display: flex; justify-content: center;">
                 <button id="lang-toggle" class="btn-lang" title="Switch language">
                     <span id="lang-label">🌐 EN</span>
@@ -30,20 +30,20 @@
         <div class="glass-panel" id="upload-panel">
             <form id="evaluation-form">
                 <div class="form-group">
-                    <label for="cv-file">Tải lên CV (PDF) <span class="required">*</span></label>
+                    <label for="cv-file"><span data-i18n="upload_label">Tải lên CV (PDF)</span> <span class="required">*</span></label>
                     <div class="file-drop-area">
-                        <span class="file-msg">Chọn một file PDF hoặc kéo thả vào đây</span>
+                        <span class="file-msg" data-i18n="drag_drop">Chọn một file PDF hoặc kéo thả vào đây</span>
                         <input class="file-input" type="file" id="cv-file" name="cv_file" accept=".pdf" required>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="jd-text">Mô tả công việc - JD (Tùy chọn)</label>
-                    <textarea id="jd-text" name="jd_text" placeholder="Dán mô tả công việc vào đây để xem CV của bạn phù hợp với vị trí này như thế nào..."></textarea>
+                    <label for="jd-text" data-i18n="jd_label">Mô tả công việc - JD (Tùy chọn)</label>
+                    <textarea id="jd-text" name="jd_text" placeholder="Dán mô tả công việc vào đây để xem CV của bạn phù hợp với vị trí này như thế nào..." data-i18n-placeholder="jd_placeholder"></textarea>
                 </div>
 
                 <button type="submit" class="btn-primary" id="submit-btn">
-                    <span>Bắt đầu Phân tích AI</span>
+                    <span data-i18n="start_btn">Bắt đầu Phân tích AI</span>
                     <div class="spinner hidden" id="submit-spinner"></div>
                 </button>
             </form>
@@ -51,10 +51,10 @@
         </div>
 
         <div class="glass-panel hidden" id="status-panel">
-            <h2>AI Đang Xử Lý</h2>
+            <h2 data-i18n="processing">AI Đang Xử Lý</h2>
             <div class="terminal">
                 <ul id="log-list">
-                    <li><span class="log-time">[Hệ thống]</span> Đang khởi tạo hệ thống phân tích LangGraph...</li>
+                    <li><span class="log-time">[Hệ thống]</span> <span data-i18n="init_log">Đang khởi tạo hệ thống phân tích LangGraph...</span></li>
                 </ul>
             </div>
             <div class="progress-container">
@@ -64,18 +64,18 @@
 
         <div class="glass-panel hidden" id="result-panel">
             <div class="result-header">
-                <h2>Phân tích Hoàn tất</h2>
+                <h2 data-i18n="complete">Phân tích Hoàn tất</h2>
                 <div style="display:flex;gap:10px;align-items:center;">
                     <button class="btn-lang" id="report-lang-toggle" title="Switch report language">
                         <span id="report-lang-label">🌐 EN</span>
                     </button>
-                    <button class="btn-secondary" id="download-pdf-btn">Tải Báo Cáo PDF</button>
+                    <button class="btn-secondary" id="download-pdf-btn" data-i18n="download_btn">Tải Báo Cáo PDF</button>
                 </div>
             </div>
             <div id="report-content" class="report-container">
                 <!-- HTML Output goes here -->
             </div>
-            <button class="btn-outline mt-4" id="restart-btn">Đánh giá CV Khác</button>
+            <button class="btn-outline mt-4" id="restart-btn" data-i18n="restart_btn">Đánh giá CV Khác</button>
         </div>
     </main>
 

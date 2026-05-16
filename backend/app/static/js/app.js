@@ -23,6 +23,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const reportLangToggle = document.getElementById('report-lang-toggle');
     const reportLangLabel = document.getElementById('report-lang-label');
     
+    // Language dictionary
+    const i18n = {
+        vi: {
+            title: 'Hệ thống Phân tích CV AI ',
+            subtitle: 'Tải CV của bạn lên để nhận phân tích chuyên sâu từ AI đa luồng.',
+            upload_label: 'Tải lên CV (PDF)',
+            drag_drop: 'Chọn một file PDF hoặc kéo thả vào đây',
+            jd_label: 'Mô tả công việc - JD (Tùy chọn)',
+            jd_placeholder: 'Dán mô tả công việc vào đây để xem CV của bạn phù hợp với vị trí này như thế nào...',
+            start_btn: 'Bắt đầu Phân tích AI',
+            processing: 'AI Đang Xử Lý',
+            init_log: 'Đang khởi tạo hệ thống phân tích LangGraph...',
+            complete: 'Phân tích Hoàn tất',
+            download_btn: 'Tải Báo Cáo PDF',
+            restart_btn: 'Đánh giá CV Khác'
+        },
+        en: {
+            title: 'AI CV Evaluation System ',
+            subtitle: 'Upload your CV for deep analysis from our multi-agent AI.',
+            upload_label: 'Upload CV (PDF)',
+            drag_drop: 'Choose a PDF file or drag & drop here',
+            jd_label: 'Job Description - JD (Optional)',
+            jd_placeholder: 'Paste job description here to see how your CV fits this role...',
+            start_btn: 'Start AI Analysis',
+            processing: 'AI is Processing',
+            init_log: 'Initializing LangGraph analysis system...',
+            complete: 'Analysis Complete',
+            download_btn: 'Download PDF Report',
+            restart_btn: 'Evaluate Another CV'
+        }
+    };
+    
     // Language state
     let currentLang = 'vi';
     
@@ -32,9 +64,32 @@ document.addEventListener('DOMContentLoaded', () => {
         if (reportLangLabel) reportLangLabel.textContent = `🌐 ${nextLang}`;
     }
     
+    function applyTranslations() {
+        const dict = i18n[currentLang];
+        
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (dict[key]) {
+                if (key === 'title') {
+                    el.innerHTML = dict[key] + '<span class="badge">Pro</span>';
+                } else {
+                    el.textContent = dict[key];
+                }
+            }
+        });
+        
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            if (dict[key]) {
+                el.placeholder = dict[key];
+            }
+        });
+    }
+
     function toggleLang() {
         currentLang = currentLang === 'vi' ? 'en' : 'vi';
         updateLangButtons();
+        applyTranslations();
     }
     
     if (langToggle) {
@@ -67,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fileMsg.textContent = e.target.files[0].name;
             fileMsg.style.color = '#f8fafc';
         } else {
-            fileMsg.textContent = 'Chọn một file PDF hoặc kéo thả vào đây';
+            fileMsg.textContent = i18n[currentLang].drag_drop;
             fileMsg.style.color = 'var(--text-muted)';
         }
     });
@@ -127,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showError(err.message);
             submitBtn.disabled = false;
             spinner.classList.add('hidden');
-            submitBtn.querySelector('span').textContent = 'Bắt đầu Phân tích AI';
+            submitBtn.querySelector('span').textContent = i18n[currentLang].start_btn;
         }
     });
     
@@ -171,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusPanel.classList.add('hidden');
                 submitBtn.disabled = false;
                 spinner.classList.add('hidden');
-                submitBtn.querySelector('span').textContent = 'Bắt đầu Phân tích AI';
+                submitBtn.querySelector('span').textContent = i18n[currentLang].start_btn;
             }, 3000);
         });
     }
@@ -185,12 +240,13 @@ document.addEventListener('DOMContentLoaded', () => {
         resultPanel.classList.add('hidden');
         uploadPanel.classList.remove('hidden');
         form.reset();
-        fileMsg.textContent = 'Chọn một file PDF hoặc kéo thả vào đây';
+        fileMsg.textContent = i18n[currentLang].drag_drop;
         fileMsg.style.color = 'var(--text-muted)';
         submitBtn.disabled = false;
         spinner.classList.add('hidden');
-        submitBtn.querySelector('span').textContent = 'Bắt đầu Phân tích AI';
-        logList.innerHTML = '<li><span class="log-time">[Hệ thống]</span> Đang khởi tạo hệ thống phân tích LangGraph...</li>';
+        submitBtn.querySelector('span').textContent = i18n[currentLang].start_btn;
+        const initText = i18n[currentLang].init_log;
+        logList.innerHTML = `<li><span class="log-time">[Hệ thống]</span> <span data-i18n="init_log">${initText}</span></li>`;
         progressBar.style.width = '0%';
     });
     
