@@ -158,7 +158,7 @@ def get_llm(temperature: float | None = None):
             repo_id=settings.hf_model,
             huggingfacehub_api_token=settings.hf_token,
             temperature=temp,
-            max_new_tokens=1024,
+            max_new_tokens=4096,
             timeout=300,
         )
         return ChatHuggingFace(llm=llm)
@@ -178,6 +178,7 @@ def get_llm(temperature: float | None = None):
         model=model_name,
         google_api_key=api_key,
         temperature=temp,
+        max_output_tokens=8192,
     )
 
 
@@ -205,4 +206,5 @@ def get_pro_llm(temperature: float | None = None):
         model=model_name,
         google_api_key=api_key,
         temperature=temp,
+        max_output_tokens=8192,
     )

@@ -81,6 +81,7 @@ Bạn là một HR Manager. Nhiệm vụ của bạn là đánh giá "Yếu tố
 YÊU CẦU QUAN TRỌNG:
 - PHẢN HỒI HOÀN TOÀN BẰNG TIẾNG VIỆT.
 - Chấm điểm dựa trên bằng chứng trong CV.
+- BẠN PHẢI TRẢ VỀ CHÍNH XÁC ĐỊNH DẠNG JSON NHƯ YÊU CẦU. KHÔNG VIẾT GÌ NGOÀI JSON.
 
 Ngữ cảnh: {dynamic_rubric}
 
@@ -129,8 +130,8 @@ Trả về JSON:
   "general_advice": [string],
   "industry_standards": string,
   "industry_keywords": [string],
-  "summary": string (1-2 câu tóm tắt ngắn),
-  "detailed_analysis": string (Đoạn văn dài, chi tiết, phân tích tổng quan và sâu sắc nhất về CV này)
+  "summary": string (VIẾT ĐÚNG 1 CÂU NHẬN XÉT TỔNG QUAN, KHÔNG QUÁ 30 TỪ, TUYỆT ĐỐI KHÔNG LIỆT KÊ CHI TIẾT ĐỂ TRÁNH BỊ CẮT CHỮ),
+  "detailed_analysis": string (Đoạn văn dài, phân chia thành các đoạn nhỏ, phân tích tổng quan và sâu sắc nhất về CV này. KHÔNG viết tắt, KHÔNG bỏ lửng câu)
 }}
 """
 
