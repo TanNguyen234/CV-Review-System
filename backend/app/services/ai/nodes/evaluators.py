@@ -172,7 +172,6 @@ def _build_evaluator_fallback(
         has_email = "@" in cleaned_text
         has_phone = any(c.isdigit() for c in cleaned_text[:500])
         has_links = any(kw in cleaned_text.lower() for kw in ["github", "linkedin", "portfolio"])
-        has_sections = len(sections) >= 3
 
         format_score = 8 if text_len > 500 else 3
         foundation_score = min(10, (5 if has_email else 0) + (3 if has_phone else 0) + (2 if has_links else 0))
