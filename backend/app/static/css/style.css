@@ -311,6 +311,29 @@ textarea:focus {
     border-color: rgba(255,255,255,0.2);
 }
 
+.btn-lang {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-main);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.btn-lang:hover {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: var(--primary-light);
+    transform: translateY(-1px);
+}
+
 .spinner {
     width: 22px;
     height: 22px;
@@ -422,22 +445,22 @@ textarea:focus {
     font-size: 2.25rem;
 }
 
+
+/* Report container — white background so report's inline light-theme renders correctly */
 .report-container {
-    background: rgba(0, 0, 0, 0.2);
+    background: #ffffff;
     border-radius: 24px;
     padding: 2.5rem;
-    max-height: 600px;
+    max-height: 80vh;
     overflow-y: auto;
-    border: 1px solid var(--glass-border);
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
 }
 
-/* Report Styles */
-.report-container h1 { font-size: 2.5rem; margin-bottom: 1.5rem; }
-.report-container h2 { font-size: 1.8rem; margin-top: 2rem; color: var(--primary-light); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; }
-.report-container h3 { font-size: 1.3rem; margin-top: 1.5rem; color: var(--secondary-light); }
-.report-container p { color: #d1d5db; margin-bottom: 1.25rem; line-height: 1.8; }
-.report-container ul { margin-bottom: 1.5rem; padding-left: 1.5rem; }
-.report-container li { margin-bottom: 0.5rem; color: #d1d5db; }
+/* Report inherits its own inline styles — minimal resets only */
+.report-container * { color: inherit; }
+.report-container a { color: #2563eb; text-decoration: underline; }
 
 /* Responsive */
 @media (max-width: 768px) {
