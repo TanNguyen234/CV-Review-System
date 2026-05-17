@@ -11,7 +11,7 @@ from app.core.logging_config import pipeline_logger
 # Phase weight configuration (max scores)
 PHASE_MAX_SCORES = {
     "PHASE2": 60,
-    "PHASE3": 30,
+    "PHASE3": 40,
     "PHASE4": 10,
 }
 

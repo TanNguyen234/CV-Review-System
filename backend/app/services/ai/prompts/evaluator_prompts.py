@@ -59,8 +59,9 @@ Các tiêu chí (Tổng 40 điểm):
 1. Experience Assessment (20đ):
    - Kinh nghiệm làm việc thực tế.
    - Bullet Point Quality: Đề xuất sửa lại 1-2 dòng mô tả trong CV thành dạng định lượng (Action + Task + Result) DỰA TRÊN dữ kiện thực có trong CV.
-2. Technical Proof & Portfolio (20đ):
+2. Technical Proof (10đ):
    - Sự thống nhất giữa kỹ năng và dự án.
+3. Projects Portfolio (10đ):
    - Phân tích chi tiết dự án (Role, Công nghệ). Era Relevance (bắt kịp xu hướng hiện nay).
 
 Trả về JSON:
