@@ -32,32 +32,6 @@ async def test_check_rate_limit_exceeded():
         assert "Rate limit exceeded" in str(exc_info.value.detail)
 
 @pytest.mark.asyncio
-@patch("app.services.security.ChatGoogleGenerativeAI")
-@patch("app.services.security.pymupdf4llm.to_markdown")
-async def test_validate_cv_spam_valid(mock_to_markdown, mock_llm_class, tmp_path):
-    """Test validate_cv_spam returns True for valid CV."""
-    mock_to_markdown.return_value = "John Doe Software Engineer"
-    
-    # Mock LLM instance and ainvoke
-    mock_llm_instance = AsyncMock()
-    mock_llm_class.return_value = mock_llm_instance
-    
-    class MockResult:
-        content = "IS_CV: YES\nREASON: Looks like a valid software engineer CV."
-        
-    # We actually need to mock the chain.ainvoke, but since we patched the class,
-    # the chain is prompt | llm. The ainvoke on chain calls ainvoke on llm.
-    # Alternatively, we patch the chain directly or prompt | llm.
-    # Because `chain.ainvoke` is used, we can just patch `ChatGoogleGenerativeAI.ainvoke`
-    mock_llm_instance.ainvoke.return_value = MockResult()
-    
-    # Actually, `chain = prompt | llm` returns a RunnableSequence, whose `ainvoke` delegates
-    # to the underlying runnable components.
-    # Let's mock `ainvoke` on the RunnableSequence returned by the | operator
-    # Or simpler: patch `ainvoke` on `langchain_core.runnables.RunnableSequence.ainvoke`
-    pass
-
-@pytest.mark.asyncio
 @patch("langchain_core.runnables.RunnableSequence.ainvoke")
 @patch("app.services.security.pymupdf4llm.to_markdown")
 async def test_validate_cv_spam_valid_chain(mock_to_markdown, mock_ainvoke, tmp_path):
@@ -94,3 +68,22 @@ async def test_validate_cv_spam_invalid_chain(mock_to_markdown, mock_ainvoke, tm
     
     assert is_cv is False
     assert "This is a menu, not a CV" in reason
+
+
+@pytest.mark.asyncio
+@patch("langchain_core.runnables.RunnableSequence.ainvoke")
+@patch("app.services.security.pymupdf4llm.to_markdown")
+@patch("app.services.security.get_llm")
+async def test_validate_cv_spam_calls_get_llm(mock_get_llm, mock_to_markdown, mock_ainvoke, tmp_path):
+    mock_to_markdown.return_value = "Some text"
+    mock_ainvoke.return_value = AsyncMock(content="IS_CV: YES\nREASON: Standard resume")
+    
+    mock_llm = AsyncMock()
+    mock_get_llm.return_value = mock_llm
+    
+    pdf_path = tmp_path / "test.pdf"
+    pdf_path.write_bytes(b"dummy")
+    
+    await validate_cv_spam(str(pdf_path))
+    
+    mock_get_llm.assert_called_once_with(temperature=0.0)

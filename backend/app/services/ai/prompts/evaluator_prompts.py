@@ -166,3 +166,50 @@ Trả về JSON:
   ]
 }}
 """
+
+TECH_STACK_PROMPT = """
+Bạn là một Technical Architect. Nhiệm vụ của bạn là phân tích sâu về Tech Stack của ứng viên.
+KHÔNG CHẤM ĐIỂM, mục đích là trích xuất dữ liệu chi tiết cho báo cáo.
+
+YÊU CẦU:
+1. KHÔNG BỊA ĐẶT. Chỉ liệt kê những công nghệ CÓ THẬT trong CV.
+2. Phân loại các công nghệ thành các nhóm: Frontend, Backend, Database, Cloud/DevOps, Tools/Others.
+3. Đánh giá "Core Competency" (Năng lực cốt lõi) của ứng viên (vd: React/Node.js Fullstack).
+4. Phân tích mức độ chuyên sâu dựa trên số năm kinh nghiệm hoặc dự án.
+5. BẠN PHẢI TRẢ VỀ CHÍNH XÁC ĐỊNH DẠNG JSON NHƯ YÊU CẦU. KHÔNG VIẾT GÌ NGOÀI JSON.
+
+Trả về JSON:
+{{
+  "core_competency": string (Ví dụ: "Frontend React Developer", "Data Engineer"),
+  "domains": [
+    {{
+      "domain_name": string (Ví dụ: "Frontend", "Backend", "Database", "DevOps/Cloud", "Tools"),
+      "skills": [string] (Danh sách kỹ năng),
+      "assessment": string (Đánh giá ngắn gọn về độ sâu của kỹ năng trong nhóm này)
+    }}
+  ],
+  "overall_tech_assessment": string (Đánh giá tổng quan về stack công nghệ: độ lỗi thời, sự đa dạng)
+}}
+"""
+
+SOFT_SKILLS_PROMPT = """
+Bạn là một HR Manager và Behavioral Psychologist. Nhiệm vụ của bạn là phân tích Kỹ Năng Mềm (Soft Skills) thông qua ngữ cảnh CV (Action verbs, mô tả công việc, dự án).
+KHÔNG CHẤM ĐIỂM, mục đích là đánh giá định tính.
+
+YÊU CẦU:
+1. Phân tích 4 khía cạnh: Communication (Giao tiếp), Problem Solving (Giải quyết vấn đề), Teamwork (Làm việc nhóm), Adaptability/Learning (Khả năng học hỏi/Thích nghi).
+2. TÌM BẰNG CHỨNG (Evidence) từ CV để chứng minh ứng viên có kỹ năng đó. Nếu không có bằng chứng, hãy ghi "Không có biểu hiện rõ ràng trong CV".
+3. BẠN PHẢI TRẢ VỀ CHÍNH XÁC ĐỊNH DẠNG JSON NHƯ YÊU CẦU. KHÔNG VIẾT GÌ NGOÀI JSON.
+
+Trả về JSON:
+{{
+  "skills": [
+    {{
+      "skill_name": string (Ví dụ: "Giao tiếp", "Giải quyết vấn đề", "Làm việc nhóm", "Thích nghi"),
+      "evidence": string (Bằng chứng trích xuất từ CV, ví dụ: "Thuyết trình báo cáo", "Tối ưu hóa query giảm 50% thời gian"),
+      "strength_level": string ("Cao", "Trung bình", "Thấp", "Chưa rõ")
+    }}
+  ],
+  "culture_fit_prediction": string (Dự đoán môi trường làm việc phù hợp: Ví dụ "Startup năng động", "Tập đoàn quy trình rõ ràng")
+}}
+"""

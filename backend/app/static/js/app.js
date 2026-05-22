@@ -37,7 +37,14 @@ document.addEventListener('DOMContentLoaded', () => {
             init_log: 'Đang khởi tạo hệ thống phân tích LangGraph...',
             complete: 'Phân tích Hoàn tất',
             download_btn: 'Tải Báo Cáo PDF',
-            restart_btn: 'Đánh giá CV Khác'
+            restart_btn: 'Đánh giá CV Khác',
+            step_extraction: 'Trích xuất văn bản',
+            step_profiling: 'Định hồ sơ kỹ năng',
+            step_evaluation: 'Đánh giá đa khía cạnh',
+            step_validation: 'Kiểm chứng logic',
+            step_jd: 'Đối sánh JD',
+            step_generation: 'Xuất báo cáo',
+            view_logs: 'Xem log kỹ thuật chi tiết'
         },
         en: {
             title: 'AI CV Evaluation System ',
@@ -51,7 +58,14 @@ document.addEventListener('DOMContentLoaded', () => {
             init_log: 'Initializing LangGraph analysis system...',
             complete: 'Analysis Complete',
             download_btn: 'Download PDF Report',
-            restart_btn: 'Evaluate Another CV'
+            restart_btn: 'Evaluate Another CV',
+            step_extraction: 'Text Extraction',
+            step_profiling: 'Skill Profiling',
+            step_evaluation: 'Multi-Phase Evaluation',
+            step_validation: 'Logic Validation',
+            step_jd: 'JD Alignment',
+            step_generation: 'Report Generation',
+            view_logs: 'View detailed technical logs'
         }
     };
     
@@ -171,6 +185,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(data.detail || "Upload failed");
             }
             
+            // Setup visual stepper
+            const jdText = document.getElementById('jd-text').value.trim();
+            hasJd = !!jdText;
+            resetStepper();
+            if (!hasJd) {
+                const stepJd = document.getElementById('step-jd');
+                const lineJd = document.getElementById('line-jd');
+                if (stepJd) stepJd.classList.add('hidden');
+                if (lineJd) lineJd.classList.add('hidden');
+            }
+            const firstStep = document.getElementById('step-extraction');
+            if (firstStep) {
+                firstStep.classList.add('active');
+            }
+
             // Success upload, switch panels
             uploadPanel.classList.add('hidden');
             statusPanel.classList.remove('hidden');
@@ -187,6 +216,99 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     let currentJobId = null;
+    let finishedNodes = new Set();
+    let hasJd = false;
+
+    function resetStepper() {
+        finishedNodes.clear();
+        const steps = ['step-extraction', 'step-profiling', 'step-evaluation', 'step-validation', 'step-jd', 'step-generation'];
+        steps.forEach(stepId => {
+            const el = document.getElementById(stepId);
+            if (el) {
+                el.classList.remove('active', 'completed');
+            }
+        });
+        
+        const lineJd = document.getElementById('line-jd');
+        if (lineJd) lineJd.classList.remove('completed');
+        
+        const stepJd = document.getElementById('step-jd');
+        if (stepJd) stepJd.classList.remove('hidden');
+        if (lineJd) lineJd.classList.remove('hidden');
+    }
+
+    function updateStepper(finishedNodeName) {
+        const stepNodes = {
+            'step-extraction': ['pdf_processor', 'profiler', 'enrichment'],
+            'step-profiling': ['project_evaluator', 'tech_stack_evaluator', 'soft_skills_evaluator'],
+            'step-evaluation': ['phase2_eval', 'phase3_eval', 'phase4_eval'],
+            'step-validation': ['validator'],
+            'step-jd': ['jd_analyzer'],
+            'step-generation': ['meta_evaluator', 'output_generator']
+        };
+        
+        const stepOrder = ['step-extraction', 'step-profiling', 'step-evaluation', 'step-validation', 'step-jd', 'step-generation'];
+        
+        let currentStepId = null;
+        for (const [stepId, nodes] of Object.entries(stepNodes)) {
+            if (nodes.includes(finishedNodeName)) {
+                currentStepId = stepId;
+                break;
+            }
+        }
+        
+        if (!currentStepId) return;
+        
+        finishedNodes.add(finishedNodeName);
+        
+        const activeSteps = stepOrder.filter(stepId => {
+            if (stepId === 'step-jd') return hasJd;
+            return true;
+        });
+        
+        const currentStepIdx = activeSteps.indexOf(currentStepId);
+        if (currentStepIdx === -1) return;
+        
+        const stepNodesList = stepNodes[currentStepId];
+        const allFinished = stepNodesList.every(node => finishedNodes.has(node));
+        
+        for (let i = 0; i < currentStepIdx; i++) {
+            const stepEl = document.getElementById(activeSteps[i]);
+            if (stepEl) {
+                stepEl.classList.remove('active');
+                stepEl.classList.add('completed');
+            }
+            // Mark connectors as completed too
+            if (i > 0) {
+                // If previous was completed, line after it is completed
+                // There is no explicit line element for all steps except line-jd,
+                // but if we had other lines we would style them here.
+            }
+        }
+        
+        const currentStepEl = document.getElementById(currentStepId);
+        if (currentStepEl) {
+            if (allFinished) {
+                currentStepEl.classList.remove('active');
+                currentStepEl.classList.add('completed');
+                
+                if (currentStepId === 'step-validation' && hasJd) {
+                    const lineJd = document.getElementById('line-jd');
+                    if (lineJd) lineJd.classList.add('completed');
+                }
+
+                if (currentStepIdx + 1 < activeSteps.length) {
+                    const nextStepId = activeSteps[currentStepIdx + 1];
+                    const nextStepEl = document.getElementById(nextStepId);
+                    if (nextStepEl) {
+                        nextStepEl.classList.add('active');
+                    }
+                }
+            } else {
+                currentStepEl.classList.add('active');
+            }
+        }
+    }
 
     function startStream(jobId) {
         currentJobId = jobId;
@@ -195,7 +317,14 @@ document.addEventListener('DOMContentLoaded', () => {
         progressBar.style.width = `${progress}%`;
         
         eventSource.addEventListener('status', (e) => {
-            addLog(e.data);
+            const logMsg = e.data;
+            addLog(logMsg);
+            
+            if (logMsg.startsWith('Finished: ')) {
+                const nodeName = logMsg.substring('Finished: '.length).trim();
+                updateStepper(nodeName);
+            }
+            
             progress += 10;
             if (progress > 95) progress = 95;
             progressBar.style.width = `${progress}%`;
@@ -204,6 +333,18 @@ document.addEventListener('DOMContentLoaded', () => {
         eventSource.addEventListener('complete', (e) => {
             addLog("Phân tích hoàn tất! Đang chuẩn bị báo cáo...");
             progressBar.style.width = '100%';
+            
+            // Mark all active steps as completed
+            const steps = ['step-extraction', 'step-profiling', 'step-evaluation', 'step-validation', 'step-jd', 'step-generation'];
+            steps.forEach(stepId => {
+                const el = document.getElementById(stepId);
+                if (el && !el.classList.contains('hidden')) {
+                    el.classList.remove('active');
+                    el.classList.add('completed');
+                }
+            });
+            const lineJd = document.getElementById('line-jd');
+            if (lineJd && hasJd) lineJd.classList.add('completed');
             
             const data = JSON.parse(e.data);
             reportContent.innerHTML = data.report_html;
@@ -220,7 +361,6 @@ document.addEventListener('DOMContentLoaded', () => {
             addLog(`Lỗi: Mất kết nối hoặc quá trình xử lý thất bại.`);
             eventSource.close();
             
-            // Offer to go back
             setTimeout(() => {
                 uploadPanel.classList.remove('hidden');
                 statusPanel.classList.add('hidden');
@@ -247,6 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.querySelector('span').textContent = i18n[currentLang].start_btn;
         const initText = i18n[currentLang].init_log;
         logList.innerHTML = `<li><span class="log-time">[Hệ thống]</span> <span data-i18n="init_log">${initText}</span></li>`;
+        resetStepper();
         progressBar.style.width = '0%';
     });
     

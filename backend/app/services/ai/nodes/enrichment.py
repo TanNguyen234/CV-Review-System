@@ -77,6 +77,36 @@ def _build_query(sections: dict, level: str = "", industry: str = "") -> str:
     return query[:300] if query else ""
 
 
+def _get_offline_market_insight(level: str) -> dict:
+    """Return hardcoded offline market insight when API fails."""
+    level_lower = level.lower() if level else ""
+    if "intern" in level_lower or "thực tập" in level_lower:
+        salary = "3 - 6 triệu VND/tháng"
+        req = "Kiến thức nền tảng tốt, thái độ học hỏi nhanh, biết sử dụng Git."
+    elif "fresher" in level_lower:
+        salary = "7 - 12 triệu VND/tháng"
+        req = "Nắm vững kiến thức cơ bản, có đồ án thực tế, có thể làm việc dưới sự hướng dẫn."
+    elif "junior" in level_lower:
+        salary = "10 - 18 triệu VND/tháng"
+        req = "1-2 năm kinh nghiệm thực tế, làm việc độc lập với task cơ bản, quen thuộc Agile/Scrum."
+    elif "senior" in level_lower:
+        salary = "30 - 60 triệu VND/tháng"
+        req = "5+ năm kinh nghiệm, khả năng thiết kế hệ thống, tối ưu hiệu năng, mentoring."
+    elif "mid" in level_lower:
+        salary = "18 - 35 triệu VND/tháng"
+        req = "2-4 năm kinh nghiệm, nắm vững best practices, xử lý tốt bài toán độ khó trung bình."
+    else:
+        salary = "Thỏa thuận theo năng lực (Ước tính tự động)"
+        req = "Yêu cầu phụ thuộc vào vị trí và quy mô công ty."
+        
+    return {
+        "salary_range": salary,
+        "market_demand": "Thị trường ưu tiên ứng viên có kỹ năng thực chiến và tư duy giải quyết vấn đề.",
+        "trending_skills": ["AI/ML", "Cloud", "Microservices", "System Design"],
+        "standard_requirements": req
+    }
+
+
 def enrichment_node(state: AgentState) -> dict:
     """
     Enriches the pipeline state with market context from web search.
@@ -85,21 +115,23 @@ def enrichment_node(state: AgentState) -> dict:
     start = time.time()
     pipeline_logger.node_start("enrichment")
 
+    level = state.get("candidate_level", "")
+    industry = state.get("industry", "")
+
     api_key = settings.tavily_api_key
     if not api_key:
         pipeline_logger.node_error(
-            "enrichment", "TAVILY_API_KEY not set", retryable=False
+            "enrichment", "TAVILY_API_KEY not set - using offline fallback", retryable=False
         )
+        offline_insight = _get_offline_market_insight(level)
         return {
-            "text_insights": {},
-            "market_insight": None,
-            "processing_metadata": {"enrichment_skipped": True},
-            "errors": ["TAVILY_API_KEY not set — enrichment skipped"],
+            "text_insights": {"rag_context": "Offline fallback"},
+            "market_insight": offline_insight,
+            "processing_metadata": {"enrichment_skipped": True, "offline_fallback": True},
+            "errors": ["TAVILY_API_KEY not set — using offline fallback"],
         }
 
     sections = state.get("sections", {})
-    level = state.get("candidate_level", "")
-    industry = state.get("industry", "")
 
     query = _build_query(sections, level, industry)
     if not query:
@@ -133,8 +165,8 @@ def enrichment_node(state: AgentState) -> dict:
                 "standard_requirements": insight_result.standard_requirements
             }
         except Exception as e:
-            pipeline_logger.node_error("enrichment", f"LLM parsing failed: {e}")
-            market_insight = None
+            pipeline_logger.node_error("enrichment", f"LLM parsing failed, using offline fallback: {e}")
+            market_insight = _get_offline_market_insight(level)
 
         duration_ms = (time.time() - start) * 1000
         pipeline_logger.node_complete(
@@ -160,12 +192,14 @@ def enrichment_node(state: AgentState) -> dict:
         pipeline_logger.node_error(
             "enrichment", str(exc), retryable=True
         )
+        offline_insight = _get_offline_market_insight(level)
         return {
-            "text_insights": {},
-            "market_insight": None,
+            "text_insights": {"rag_context": "Offline fallback"},
+            "market_insight": offline_insight,
             "processing_metadata": {
                 "enrichment_duration_ms": round(duration_ms, 2),
                 "enrichment_error": str(exc),
+                "offline_fallback": True
             },
-            "errors": [f"Enrichment error (non-blocking): {exc}"],
+            "errors": [f"Enrichment error — using offline fallback: {exc}"],
         }

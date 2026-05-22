@@ -99,6 +99,8 @@ TRANSLATIONS = {
         "specific_suggest": "Gợi ý cụ thể",
         "improved_desc": "Dòng mô tả cải thiện",
         "trend_eval": "Đánh giá xu hướng",
+        "tech_stack_title": "Phân Tích Tech Stack & Năng Lực Lõi",
+        "soft_skills_title": "Đánh Giá Kỹ Năng Mềm & Độ Phù Hợp",
         "page_header": "AI CV Analysis Report",
     },
     "en": {
@@ -141,6 +143,8 @@ TRANSLATIONS = {
         "specific_suggest": "Specific Suggestions",
         "improved_desc": "Improved Descriptions",
         "trend_eval": "Trend Evaluation",
+        "tech_stack_title": "Tech Stack & Core Competency Analysis",
+        "soft_skills_title": "Soft Skills & Culture Fit Assessment",
         "page_header": "AI CV Analysis Report",
     },
 }
@@ -250,6 +254,8 @@ def generate_html(state: AgentState, lang: str = "vi") -> str:
     p3 = scores.get("PHASE3", {})
     p4 = scores.get("PHASE4", {})
     project_eval = scores.get("PROJECT_EVAL", {})
+    tech_stack_eval = scores.get("TECH_STACK_EVAL", {})
+    soft_skills_eval = scores.get("SOFT_SKILLS_EVAL", {})
 
     # Validate Phase 4 bonus: total must match sum of sub-items
     p4_details = p4.get("details", {})
@@ -432,6 +438,77 @@ def generate_html(state: AgentState, lang: str = "vi") -> str:
         {projects_cards}
         """
 
+    # Tech Stack HTML
+    tech_stack_html = ""
+    if tech_stack_eval:
+        core_comp = tech_stack_eval.get("core_competency", "")
+        domains = tech_stack_eval.get("domains", [])
+        overall_tech = tech_stack_eval.get("overall_tech_assessment", "")
+        
+        domains_html = ""
+        for dom in domains:
+            domain_name = dom.get("domain_name", "")
+            skills = dom.get("skills", [])
+            assessment = dom.get("assessment", "")
+            skills_html = "".join([f'<span class="skill-tag" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;">{s}</span>' for s in skills])
+            domains_html += f'''
+            <div style="margin-bottom:15px;">
+                <h4 style="color:#0f172a;margin-bottom:8px;font-size:14px;">{domain_name}</h4>
+                <div class="skill-tags" style="margin-bottom:8px;">{skills_html}</div>
+                <div style="font-size:13px;color:#475569;">{assessment}</div>
+            </div>
+            '''
+        
+        tech_stack_html = f"""
+        <h2>{t.get('tech_stack_title', 'Tech Stack Analysis')}</h2>
+        <div style="background:#fff;border:1px solid var(--border);padding:20px;border-radius:4px;margin-bottom:40px;">
+            <div style="background:#f8fafc;padding:15px;border-radius:4px;margin-bottom:20px;border-left:4px solid var(--accent);">
+                <div style="font-size:12px;text-transform:uppercase;color:#94a3b8;font-weight:700;">Năng Lực Cốt Lõi</div>
+                <div style="font-size:16px;color:var(--primary);font-weight:700;">{core_comp}</div>
+            </div>
+            {domains_html}
+            <div style="margin-top:20px;padding-top:15px;border-top:1px dashed var(--border);font-size:13px;color:#475569;">
+                <strong>Đánh giá chung:</strong> {overall_tech}
+            </div>
+        </div>
+        """
+
+    # Soft Skills HTML
+    soft_skills_html = ""
+    if soft_skills_eval:
+        skills = soft_skills_eval.get("skills", [])
+        culture_fit = soft_skills_eval.get("culture_fit_prediction", "")
+        
+        skills_cards = ""
+        for sk in skills:
+            skill_name = sk.get("skill_name", "")
+            evidence = sk.get("evidence", "")
+            strength = sk.get("strength_level", "")
+            strength_colors = {"Cao": "#22c55e", "Trung bình": "#eab308", "Thấp": "#ef4444", "Chưa rõ": "#94a3b8"}
+            s_color = strength_colors.get(strength, "#94a3b8")
+            
+            skills_cards += f'''
+            <div style="background:#fff;border:1px solid var(--border);padding:15px;border-radius:4px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <div style="font-weight:700;color:var(--primary);font-size:14px;">{skill_name}</div>
+                    <div style="font-size:11px;font-weight:700;color:{s_color};padding:2px 8px;border-radius:10px;background:#f8fafc;border:1px solid {s_color}40;">{strength}</div>
+                </div>
+                <div style="font-size:13px;color:#475569;"><strong>Minh chứng:</strong> {evidence}</div>
+            </div>
+            '''
+            
+        soft_skills_html = f"""
+        <h2>{t.get('soft_skills_title', 'Soft Skills Analysis')}</h2>
+        <div style="margin-bottom:40px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:20px;">
+                {skills_cards}
+            </div>
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:15px;border-radius:4px;color:#166534;font-size:14px;">
+                <strong>Dự đoán môi trường phù hợp:</strong> {culture_fit}
+            </div>
+        </div>
+        """
+
     # Validation warning
     validation = state.get("validation_result", {})
     anomalies = validation.get("anomalies", [])
@@ -570,6 +647,13 @@ def generate_html(state: AgentState, lang: str = "vi") -> str:
                 <div class="report-meta">Pipeline v2.0 — {date_str}</div>
             </header>
 
+            {f'''
+            <div style="background: #fffbeb; border: 1px solid #f59e0b; border-left: 5px solid #d97706; padding: 15px 20px; border-radius: 4px; margin-bottom: 30px;">
+                <h3 style="color: #b45309; margin: 0 0 5px 0; font-size: 16px;">⚠️ Cảnh Báo: Chế Độ Đánh Giá Dự Phòng</h3>
+                <p style="color: #92400e; margin: 0; font-size: 14px;">Hệ thống phân tích AI nâng cao hiện đang quá tải hoặc gặp sự cố kết nối. Báo cáo này được tạo bởi thuật toán dự phòng cơ bản, do đó điểm số (đặc biệt là mục kinh nghiệm) và phân tích có thể sơ sài, không phản ánh đúng 100% năng lực thực tế của bạn.</p>
+            </div>
+            ''' if any("lỗi" in err.lower() or "error" in err.lower() for err in state.get("errors", [])) else ""}
+
             <div class="candidate-info">
                 <div class="info-item">
                     <div class="label">{t['candidate_name']}</div>
@@ -636,6 +720,9 @@ def generate_html(state: AgentState, lang: str = "vi") -> str:
                 </div>
                 {render_details(p4.get('details', {}))}
             </div>
+
+            {tech_stack_html}
+            {soft_skills_html}
 
             {jd_section_html}
             {market_html}

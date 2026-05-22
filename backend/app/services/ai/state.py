@@ -96,6 +96,33 @@ class JDAnalysis(TypedDict, total=False):
     interview_questions: List[InterviewQuestion]
 
 
+class TechDomain(TypedDict, total=False):
+    """Typed schema for a technology domain."""
+    domain_name: str
+    skills: List[str]
+    assessment: str
+
+
+class TechStackAnalysis(TypedDict, total=False):
+    """Typed schema for Tech Stack evaluation results."""
+    core_competency: str
+    domains: List[TechDomain]
+    overall_tech_assessment: str
+
+
+class SoftSkill(TypedDict, total=False):
+    """Typed schema for an individual soft skill."""
+    skill_name: str
+    evidence: str
+    strength_level: str
+
+
+class SoftSkillsAnalysis(TypedDict, total=False):
+    """Typed schema for Soft Skills evaluation results."""
+    skills: List[SoftSkill]
+    culture_fit_prediction: str
+
+
 class ProcessingMetadata(TypedDict, total=False):
     """Metadata about the pipeline processing run."""
     correlation_id: str

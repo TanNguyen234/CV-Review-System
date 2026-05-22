@@ -3,9 +3,9 @@ from fastapi import HTTPException
 from app.core.database import db_manager
 from app.schemas.db import RateLimitRecord
 import pymupdf4llm
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import PromptTemplate
 from app.core.config import settings
+from app.services.ai.helpers.llm_factory import get_llm
 import logging
 
 logger = logging.getLogger(__name__)
@@ -57,11 +57,7 @@ async def validate_cv_spam(file_path: str) -> tuple[bool, str]:
         # Extract text from first page only for speed
         md_text = pymupdf4llm.to_markdown(file_path, pages=[0])
         
-        llm = ChatGoogleGenerativeAI(
-            model=settings.ai_model_flash,
-            google_api_key=settings.gemini_api_key,
-            temperature=0.0
-        )
+        llm = get_llm(temperature=0.0)
         
         prompt = PromptTemplate.from_template(
             "You are an AI Security guard for a recruitment system.\n"

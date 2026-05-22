@@ -262,7 +262,12 @@ def _build_evaluator_fallback(
         has_skills = "SKILLS" in sections
         has_projects = "PROJECTS" in sections or "PROJECT" in sections
 
-        exp_score = 15 if has_experience else 5
+        # Tối ưu cho Fresher: Nếu không có kinh nghiệm nhưng có dự án, bù điểm kinh nghiệm
+        if not has_experience and has_projects:
+            exp_score = 12
+        else:
+            exp_score = 15 if has_experience else 5
+            
         tech_score = 10 if has_skills else 3
         proj_score = 10 if has_projects else 3
         total = exp_score + tech_score + proj_score

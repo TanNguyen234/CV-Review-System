@@ -4,6 +4,8 @@ Supports Gemini and HuggingFace with structured output fallback.
 """
 
 import copy
+import re
+import json
 import time
 from typing import Type, TypeVar
 
@@ -55,6 +57,65 @@ def _classify_and_raise(error: Exception, node_name: str = "unknown") -> None:
         raise LLMPermanentError(f"Permanent LLM error: {error}") from error
 
 
+def _extract_json_block(text: str) -> dict:
+    """
+    Robustly extracts and parses a JSON object from text.
+    Handles markdown code blocks, surrounding text, trailing commas,
+    and minor formatting issues.
+    """
+    text_clean = text.strip()
+    
+    # Try direct parse
+    try:
+        return json.loads(text_clean)
+    except json.JSONDecodeError:
+        pass
+
+    # Extract content from markdown blocks if present
+    markdown_match = re.search(r"```(?:json)?\s*(.*?)\s*```", text_clean, re.DOTALL | re.IGNORECASE)
+    if markdown_match:
+        content = markdown_match.group(1).strip()
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            text_clean = content
+
+    # Find the outer-most { and } braces
+    first_brace = text_clean.find('{')
+    last_brace = text_clean.rfind('}')
+    
+    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+        json_str = text_clean[first_brace:last_brace+1]
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError:
+            pass
+
+        # Try to fix common JSON issues like trailing commas
+        fixed_json_str = re.sub(r',\s*([\]}])', r'\1', json_str)
+        try:
+            return json.loads(fixed_json_str)
+        except json.JSONDecodeError:
+            pass
+
+        # Try to replace single quotes with double quotes for keys and values
+        fixed_quotes = json_str
+        # Replace single quotes wrapping keys: 'key': -> "key":
+        fixed_quotes = re.sub(r"'\s*(\w+)\s*'\s*:", r'"\1":', fixed_quotes)
+        # Replace single quotes wrapping string values: : 'value' -> : "value"
+        fixed_quotes = re.sub(r":\s*'([^']*)'", r': "\1"', fixed_quotes)
+        # Replace single quotes wrapping string values in arrays: ['value1', 'value2']
+        fixed_quotes = re.sub(r"'\s*([^']*)\s*'\s*([,\]])", r'"\1"\2', fixed_quotes)
+        # Clean trailing commas from this as well
+        fixed_quotes = re.sub(r',\s*([\]}])', r'\1', fixed_quotes)
+        try:
+            return json.loads(fixed_quotes)
+        except json.JSONDecodeError:
+            pass
+
+    raise ValueError(f"Could not extract valid JSON from LLM response: {text[:200]}...")
+
+
 def invoke_structured(
     llm,
     pydantic_class: Type[T],
@@ -92,7 +153,8 @@ def invoke_structured(
                 )
 
             result_msg = llm.invoke(new_messages)
-            result_dict = parser.invoke(result_msg)
+            content = result_msg.content if hasattr(result_msg, "content") else str(result_msg)
+            result_dict = _extract_json_block(content)
             result = pydantic_class(**result_dict)
         else:
             # Try structured output first (Gemini function calling)
@@ -119,7 +181,8 @@ def invoke_structured(
                         break
 
                 result_msg = llm.invoke(fallback_messages)
-                result_dict = parser.invoke(result_msg)
+                content = result_msg.content if hasattr(result_msg, "content") else str(result_msg)
+                result_dict = _extract_json_block(content)
                 result = pydantic_class(**result_dict)
 
             if result is None:
