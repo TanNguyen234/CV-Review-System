@@ -4,7 +4,6 @@ from app.core.database import db_manager
 from app.schemas.db import RateLimitRecord
 import pymupdf4llm
 from langchain_core.prompts import PromptTemplate
-from app.core.config import settings
 from app.services.ai.helpers.llm_factory import get_llm
 import logging
 

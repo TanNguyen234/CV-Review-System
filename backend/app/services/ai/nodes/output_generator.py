@@ -647,7 +647,7 @@ def generate_html(state: AgentState, lang: str = "vi") -> str:
                 <div class="report-meta">Pipeline v2.0 — {date_str}</div>
             </header>
 
-            {f'''
+            {'''
             <div style="background: #fffbeb; border: 1px solid #f59e0b; border-left: 5px solid #d97706; padding: 15px 20px; border-radius: 4px; margin-bottom: 30px;">
                 <h3 style="color: #b45309; margin: 0 0 5px 0; font-size: 16px;">⚠️ Cảnh Báo: Chế Độ Đánh Giá Dự Phòng</h3>
                 <p style="color: #92400e; margin: 0; font-size: 14px;">Hệ thống phân tích AI nâng cao hiện đang quá tải hoặc gặp sự cố kết nối. Báo cáo này được tạo bởi thuật toán dự phòng cơ bản, do đó điểm số (đặc biệt là mục kinh nghiệm) và phân tích có thể sơ sài, không phản ánh đúng 100% năng lực thực tế của bạn.</p>
